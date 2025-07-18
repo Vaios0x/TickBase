@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
 
+// Asegurar que React esté disponible globalmente para librerías Web3
+window.React = React
+
 // Obtener el elemento root y limpiar loading fallback
 const rootElement = document.getElementById('root')
 const loadingElement = rootElement.querySelector('.loading')
