@@ -1,6 +1,6 @@
+import React, { useState, useEffect } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi'
-import { useState, useEffect } from 'react'
 import './TicketSafer.css'
 import './CheckoutStyles.css'
 
