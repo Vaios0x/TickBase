@@ -3,12 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "resolutions": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
   "scripts": {
-    "preinstall": "npx npm-force-resolutions",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
