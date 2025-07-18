@@ -1,0 +1,3949 @@
+import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { useAccount } from 'wagmi'
+import { useState, useEffect } from 'react'
+import './TicketSafer.css'
+
+// Componente optimizado para carga de imágenes
+const OptimizedImage = ({ src, alt, className = "" }) => {
+  const [imageLoaded, setImageLoaded] = useState(false)
+  const [imageError, setImageError] = useState(false)
+
+  const handleImageLoad = () => {
+    setImageLoaded(true)
+  }
+
+  const handleImageError = () => {
+    setImageError(true)
+  }
+
+  if (imageError) {
+    return (
+      <div className={`image-placeholder ${className}`} style={{
+        background: 'linear-gradient(45deg, #ffd700, #ff6b35)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#000',
+        fontWeight: 'bold'
+      }}>
+        🎭 Imagen no disponible
+      </div>
+    )
+  }
+
+  return (
+    <>
+      {!imageLoaded && (
+        <div className={`image-placeholder ${className}`} style={{
+          background: 'linear-gradient(45deg, rgba(255, 215, 0, 0.1), rgba(255, 107, 53, 0.1))',
+          backgroundSize: '400% 400%',
+          animation: 'shimmerBg 2s ease-in-out infinite',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#ffd700'
+        }}>
+          ⏳ Cargando...
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className={`${className} ${imageLoaded ? 'loaded' : 'loading'}`}
+        onLoad={handleImageLoad}
+        onError={handleImageError}
+        style={{
+          display: imageLoaded ? 'block' : 'none'
+        }}
+        loading="lazy"
+      />
+    </>
+  )
+}
+
+// Mock data for events
+const mockEvents = [
+  {
+    id: 1,
+    title: "Coldplay - Buenos Aires",
+    artist: "Coldplay",
+    venue: "Estadio River Plate",
+    date: "2025-03-15",
+    time: "20:00",
+    price: 0.063,
+    currency: "ETH",
+    category: "Concierto",
+    genre: "Rock/Pop",
+    image: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80",
+    description: "Únete a Coldplay en su espectacular gira mundial 'Music of the Spheres'. Una experiencia única que combina música, tecnología y arte visual con efectos LED interactivos, confeti colorido y la mejor música de la banda británica. Prepárate para cantar junto a Chris Martin en una noche inolvidable llena de hits como 'Yellow', 'Viva La Vida' y 'Something Just Like This'.",
+    tags: ["internacional", "estadio", "rock"],
+    available: 5432,
+    city: "Buenos Aires",
+    country: "Argentina",
+    venueType: "estadio",
+    timeOfDay: "noche"
+  },
+  {
+    id: 2,
+    title: "Festival Lollapalooza 2025",
+    artist: "Múltiples Artistas",
+    venue: "Hipódromo de San Isidro",
+    date: "2025-04-20",
+    time: "12:00",
+    price: 0.12,
+    currency: "ETH",
+    category: "Festival",
+    genre: "Múltiple",
+    image: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+    description: "El festival más esperado del año llega a Buenos Aires con un lineup increíble de artistas internacionales. Tres días de música non-stop con múltiples escenarios, food trucks gourmet, experiencias interactivas y la mejor producción audiovisual. Una celebración épica de la cultura musical contemporánea.",
+    tags: ["festival", "múltiple", "hipódromo"],
+    available: 15000,
+    city: "Buenos Aires",
+    country: "Argentina",
+    venueType: "aire libre",
+    timeOfDay: "tarde"
+  },
+  {
+    id: 3,
+    title: "Tango Show - Café Tortoni",
+    artist: "Orquesta Típica Buenos Aires",
+    venue: "Café Tortoni",
+    date: "2025-02-28",
+    time: "21:30",
+    price: 0.019,
+    currency: "ETH",
+    category: "Show",
+    genre: "Tango",
+    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+    description: "Vive una auténtica experiencia de tango en el café más histórico de Buenos Aires. La Orquesta Típica Buenos Aires te transportará a la época dorada del tango con interpretaciones magistrales de Piazzolla, Gardel y otros grandes maestros. Incluye cena tradicional argentina y show de baile profesional.",
+    tags: ["tango", "cultural", "histórico"],
+    available: 120,
+    city: "Buenos Aires",
+    country: "Argentina",
+    venueType: "club",
+    timeOfDay: "noche"
+  },
+  {
+    id: 4,
+    title: "Ultra Music Festival Miami",
+    artist: "David Guetta, Martin Garrix",
+    venue: "Bayfront Park",
+    date: "2025-03-28",
+    time: "17:00",
+    price: 0.15,
+    currency: "ETH",
+    category: "Festival",
+    genre: "Electrónica",
+    image: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+    description: "El festival de música electrónica más prestigioso del mundo regresa a Miami. Tres días de sets inolvidables con los mejores DJs planetarios incluyendo David Guetta, Martin Garrix, Tiësto y muchos más. Escenarios espectaculares, efectos visuales de última generación y la energía única de la escena electrónica global.",
+    tags: ["electrónica", "internacional", "playa"],
+    available: 25000,
+    city: "Miami",
+    country: "Estados Unidos",
+    venueType: "aire libre",
+    timeOfDay: "tarde"
+  },
+  {
+    id: 5,
+    title: "Ed Sheeran - Acoustic Tour",
+    artist: "Ed Sheeran",
+    venue: "Luna Park",
+    date: "2025-05-10",
+    time: "21:00",
+    price: 0.05,
+    currency: "ETH",
+    category: "Concierto",
+    genre: "Pop/Folk",
+    image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+    description: "Ed Sheeran presenta su tour acústico más íntimo en el histórico Luna Park. Una experiencia única con solo su guitarra y loop station, interpretando sus mayores éxitos como 'Shape of You', 'Perfect' y 'Thinking Out Loud' en versiones acústicas nunca antes escuchadas. Una noche mágica e irrepetible.",
+    tags: ["acústico", "íntimo", "británico"],
+    available: 8500,
+    city: "Buenos Aires",
+    country: "Argentina",
+    venueType: "arena",
+    timeOfDay: "noche"
+  },
+  {
+    id: 6,
+    title: "Tango Milonga - El Caminito",
+    artist: "Orquesta Carlos Di Sarli",
+    venue: "Club Gricel",
+    date: "2025-02-25",
+    time: "23:30",
+    price: 0.01,
+    currency: "ETH",
+    category: "Show",
+    genre: "Tango",
+    image: "https://images.unsplash.com/photo-1504509546545-e000b4a62425?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+    description: "Sumérgete en la auténtica cultura porteña con esta milonga tradicional en el histórico Club Gricel. La legendaria Orquesta Carlos Di Sarli interpretará tangos clásicos mientras parejas experimentadas demuestran la elegancia y pasión del baile. Una experiencia cultural única en el corazón de Buenos Aires.",
+    tags: ["tango", "milonga", "tradicional"],
+    available: 80,
+    city: "Buenos Aires",
+    country: "Argentina",
+    venueType: "club",
+    timeOfDay: "madrugada"
+  },
+  {
+    id: 7,
+    title: "Obra de Teatro: El Rey León",
+    artist: "Compañía Musical Argentina",
+    venue: "Teatro Gran Rex",
+    date: "2025-03-08",
+    time: "15:00",
+    price: 0.035,
+    currency: "ETH",
+    category: "Teatro",
+    genre: "Musical",
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80",
+    description: "El musical más exitoso de Broadway llega finalmente a Buenos Aires. Una producción espectacular con más de 100 artistas en escena, vestuarios deslumbrantes, efectos especiales y las canciones inmortales de Elton John y Tim Rice. Una experiencia familiar perfecta que transporta a toda la audiencia a la sabana africana.",
+    tags: ["musical", "teatro", "familiar"],
+    available: 1200,
+    city: "Buenos Aires",
+    country: "Argentina",
+    venueType: "teatro",
+    timeOfDay: "tarde"
+  },
+  {
+    id: 8,
+    title: "Partido de Fútbol: Boca vs River",
+    artist: "Boca Juniors vs River Plate",
+    venue: "Estadio Alberto J. Armando",
+    date: "2025-03-12",
+    time: "17:00",
+    price: 0.075,
+    currency: "ETH",
+    category: "Deportes",
+    genre: "Fútbol",
+    image: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1393&q=80",
+    description: "El superclásico más importante y apasionante del fútbol argentino llega a La Bombonera. Boca Juniors vs River Plate en un partido que paraliza al país entero. Vive la pasión, los cánticos, el color y la emoción única de este enfrentamiento histórico en el estadio más emblemático del mundo.",
+    tags: ["fútbol", "superclásico", "estadio"],
+    available: 45000,
+    city: "Buenos Aires",
+    country: "Argentina",
+    venueType: "estadio",
+    timeOfDay: "tarde"
+  },
+  {
+    id: 9,
+    title: "Festival de Jazz en el Parque",
+    artist: "Múltiples Artistas de Jazz",
+    venue: "Parque Tres de Febrero",
+    date: "2025-04-05",
+    time: "14:00",
+    price: 0.017,
+    currency: "ETH",
+    category: "Festival",
+    genre: "Jazz",
+    image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+    description: "Un domingo perfecto de jazz al aire libre en los hermosos jardines del Parque Tres de Febrero. Artistas locales e internacionales se presentarán en múltiples escenarios con estilos que van desde el jazz tradicional hasta fusiones contemporáneas. Ambiente relajado, food trucks y actividades para toda la familia.",
+    tags: ["jazz", "aire libre", "festival"],
+    available: 3000,
+    city: "Buenos Aires",
+    country: "Argentina",
+    venueType: "aire libre",
+    timeOfDay: "tarde"
+  },
+  {
+    id: 10,
+    title: "Fiesta Electrónica: Warehouse",
+    artist: "DJ Snake, Skrillex",
+    venue: "Club Niceto",
+    date: "2025-02-29",
+    time: "01:00",
+    price: 0.025,
+    currency: "ETH",
+    category: "Festival",
+    genre: "Electrónica",
+    image: "https://images.unsplash.com/photo-1571266028243-d220bc1da145?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80",
+    description: "La noche electrónica más underground de Buenos Aires con los pesos pesados internacionales DJ Snake y Skrillex. Warehouse es la fiesta que define la escena electrónica alternativa de la ciudad. Sistema de sonido de última generación, visuales psicodélicos y una multitud que baila hasta el amanecer.",
+    tags: ["electrónica", "underground", "club"],
+    available: 600,
+    city: "Buenos Aires",
+    country: "Argentina",
+    venueType: "club",
+    timeOfDay: "madrugada"
+  }
+]
+
+function TicketSafer() {
+  const { address, isConnected } = useAccount()
+  const [currentView, setCurrentView] = useState('events') // 'home', 'events', 'my-tickets', 'create-event'
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false)
+  const [filteredEvents, setFilteredEvents] = useState(mockEvents)
+  const [activeFilters, setActiveFilters] = useState({
+    category: [],
+    genre: [],
+    priceRange: [0, 0.25],
+    dateRange: '',
+    location: '',
+    sortBy: 'date',
+    availability: 'all', // 'all', 'high', 'medium', 'low'
+    timeOfDay: 'all', // 'all', 'morning', 'afternoon', 'evening', 'night'
+    venueType: 'all', // 'all', 'stadium', 'arena', 'theater', 'club', 'outdoor'
+    distance: 50, // km radius
+    favorites: false // solo mostrar favoritos
+  })
+  const [showFilters, setShowFilters] = useState(false)
+  const [viewMode, setViewMode] = useState('grid')
+  const [savedSearches, setSavedSearches] = useState([
+    { id: 1, name: "Conciertos Económicos", filters: { category: ['Concierto'], priceRange: [0, 0.05] } },
+    { id: 2, name: "Festivales de Verano", filters: { category: ['Festival'], dateRange: 'this-month' } }
+  ])
+  const [showSaveSearch, setShowSaveSearch] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState(null)
+  const [showEventModal, setShowEventModal] = useState(false)
+  const [favorites, setFavorites] = useState(() => {
+    // Cargar favoritos del localStorage
+    const savedFavorites = localStorage.getItem('ticketsafer-favorites')
+    return savedFavorites ? JSON.parse(savedFavorites) : []
+  })
+  const [showCheckout, setShowCheckout] = useState(false)
+  const [checkoutStep, setCheckoutStep] = useState(1) // 1: Tickets, 2: Info, 3: Pago, 4: Confirmación
+  const [selectedTickets, setSelectedTickets] = useState([])
+  const [customerInfo, setCustomerInfo] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    idNumber: ''
+  })
+  const [paymentInfo, setPaymentInfo] = useState({
+    method: 'crypto', // 'crypto', 'card'
+    cardNumber: '',
+    expiryDate: '',
+    cvv: '',
+    cryptoWallet: ''
+  })
+  
+  // User tickets state
+  const [userTickets, setUserTickets] = useState([
+    {
+      id: 1,
+      eventId: 1,
+      eventTitle: "Coldplay - Buenos Aires",
+      venue: "Estadio River Plate",
+      date: "2025-03-15",
+      time: "20:00",
+      section: "Platea Baja",
+      seat: "Fila 12, Asiento 8",
+      price: 0.063,
+      currency: "ETH",
+      status: "confirmed",
+      qrCode: "QR123456789",
+      ticketType: "VIP",
+      image: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80"
+    },
+    {
+      id: 2,
+      eventId: 2,
+      eventTitle: "Festival Lollapalooza 2025",
+      venue: "Hipódromo de San Isidro",
+      date: "2025-04-20",
+      time: "12:00",
+      section: "General",
+      seat: "Acceso General",
+      price: 0.12,
+      currency: "ETH",
+      status: "confirmed",
+      qrCode: "QR987654321",
+      ticketType: "General",
+      image: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+    },
+    {
+      id: 3,
+      eventId: 7,
+      eventTitle: "Obra de Teatro: El Rey León",
+      venue: "Teatro Gran Rex",
+      date: "2025-03-08",
+      time: "15:00",
+      section: "Platea Premium",
+      seat: "Fila 5, Asiento 15",
+      price: 0.035,
+      currency: "ETH",
+      status: "pending",
+      qrCode: "QR456789123",
+      ticketType: "Premium",
+      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80"
+    }
+  ])
+
+  // Create event form state
+  const [eventForm, setEventForm] = useState({
+    title: '',
+    description: '',
+    category: '',
+    genre: '',
+    date: '',
+    time: '',
+    venue: '',
+    address: '',
+    city: '',
+    country: '',
+    image: '',
+    tags: [],
+    ticketTypes: [
+      { id: 1, name: 'General', price: 0, quantity: 0, description: 'Acceso general al evento' }
+    ]
+  })
+  const [createEventStep, setCreateEventStep] = useState(1) // 1: Info básica, 2: Detalles, 3: Tickets, 4: Confirmación
+  const [ticketFilter, setTicketFilter] = useState('all') // 'all', 'active', 'used', 'expired'
+
+  // Search suggestions
+  const getSearchSuggestions = () => {
+    if (!searchQuery) return []
+    
+    const suggestions = []
+    mockEvents.forEach(event => {
+      if (event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          event.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          event.venue.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          event.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          event.genre.toLowerCase().includes(searchQuery.toLowerCase())) {
+        suggestions.push(event)
+      }
+    })
+    return suggestions.slice(0, 5)
+  }
+
+  // Advanced filter logic
+  useEffect(() => {
+    let filtered = mockEvents
+
+    // Text search
+    if (searchQuery) {
+      filtered = filtered.filter(event =>
+        event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.venue.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.genre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    }
+
+    // Category filter
+    if (activeFilters.category.length > 0) {
+      filtered = filtered.filter(event =>
+        activeFilters.category.includes(event.category)
+      )
+    }
+
+    // Genre filter
+    if (activeFilters.genre.length > 0) {
+      filtered = filtered.filter(event =>
+        activeFilters.genre.includes(event.genre)
+      )
+    }
+
+    // Price range filter
+    filtered = filtered.filter(event =>
+      event.price >= activeFilters.priceRange[0] &&
+      event.price <= activeFilters.priceRange[1]
+    )
+
+    // Location filter
+    if (activeFilters.location) {
+      filtered = filtered.filter(event =>
+        event.city.toLowerCase().includes(activeFilters.location.toLowerCase()) ||
+        event.country.toLowerCase().includes(activeFilters.location.toLowerCase()) ||
+        event.venue.toLowerCase().includes(activeFilters.location.toLowerCase())
+      )
+    }
+
+    // Date range filter
+    if (activeFilters.dateRange) {
+      const now = new Date()
+      const today = new Date(now.setHours(0, 0, 0, 0))
+      
+      filtered = filtered.filter(event => {
+        const eventDate = new Date(event.date)
+        
+        switch (activeFilters.dateRange) {
+          case 'today':
+            return eventDate.toDateString() === today.toDateString()
+          case 'tomorrow':
+            const tomorrow = new Date(today)
+            tomorrow.setDate(tomorrow.getDate() + 1)
+            return eventDate.toDateString() === tomorrow.toDateString()
+          case 'this-week':
+            const weekEnd = new Date(today)
+            weekEnd.setDate(weekEnd.getDate() + 7)
+            return eventDate >= today && eventDate <= weekEnd
+          case 'this-month':
+            const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+            return eventDate >= today && eventDate <= monthEnd
+          case 'next-month':
+            const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1)
+            const nextMonthEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0)
+            return eventDate >= nextMonthStart && eventDate <= nextMonthEnd
+          default:
+            return true
+        }
+      })
+    }
+
+    // Availability filter
+    if (activeFilters.availability !== 'all') {
+      filtered = filtered.filter(event => {
+        const availabilityLevel = event.available > 1000 ? 'high' : 
+                                 event.available > 100 ? 'medium' : 'low'
+        return availabilityLevel === activeFilters.availability
+      })
+    }
+
+    // Time of day filter
+    if (activeFilters.timeOfDay !== 'all') {
+      filtered = filtered.filter(event => {
+        const hour = parseInt(event.time.split(':')[0])
+        switch (activeFilters.timeOfDay) {
+          case 'morning': return hour >= 6 && hour < 12
+          case 'afternoon': return hour >= 12 && hour < 18
+          case 'evening': return hour >= 18 && hour < 22
+          case 'night': return hour >= 22 || hour < 6
+          default: return true
+        }
+      })
+    }
+
+    // Venue type filter (based on venue name patterns)
+    if (activeFilters.venueType !== 'all') {
+      filtered = filtered.filter(event => {
+        const venue = event.venue.toLowerCase()
+        switch (activeFilters.venueType) {
+          case 'stadium': return venue.includes('estadio') || venue.includes('stadium')
+          case 'arena': return venue.includes('arena') || venue.includes('coliseo')
+          case 'theater': return venue.includes('teatro') || venue.includes('theater')
+          case 'club': return venue.includes('club') || venue.includes('bar')
+          case 'outdoor': return venue.includes('parque') || venue.includes('park') || venue.includes('hipódromo')
+          default: return true
+        }
+      })
+    }
+
+    // Favorites filter
+    if (activeFilters.favorites) {
+      filtered = filtered.filter(event => favorites.includes(event.id))
+    }
+
+    // Sorting
+    filtered.sort((a, b) => {
+      switch (activeFilters.sortBy) {
+        case 'price-low':
+          return a.price - b.price
+        case 'price-high':
+          return b.price - a.price
+        case 'popularity':
+          return b.available - a.available
+        case 'alphabetical':
+          return a.title.localeCompare(b.title)
+        case 'availability':
+          return b.available - a.available
+        case 'distance':
+          // Simple mock distance sorting
+          return a.city.localeCompare(b.city)
+        default:
+          return new Date(a.date) - new Date(b.date)
+      }
+    })
+
+    setFilteredEvents(filtered)
+  }, [searchQuery, activeFilters, favorites])
+
+  const handleFilterChange = (filterType, value) => {
+    setActiveFilters(prev => {
+      const newFilters = { ...prev }
+      
+      if (filterType === 'category' || filterType === 'genre') {
+        if (newFilters[filterType].includes(value)) {
+          newFilters[filterType] = newFilters[filterType].filter(item => item !== value)
+        } else {
+          newFilters[filterType] = [...newFilters[filterType], value]
+        }
+      } else {
+        newFilters[filterType] = value
+      }
+      
+      return newFilters
+    })
+  }
+
+  const clearAllFilters = () => {
+    setActiveFilters({
+      category: [],
+      genre: [],
+      priceRange: [0, 0.25],
+      dateRange: '',
+      location: '',
+      sortBy: 'date',
+      availability: 'all',
+      timeOfDay: 'all',
+      venueType: 'all',
+      distance: 50,
+      favorites: false
+    })
+    setSearchQuery('')
+  }
+
+  const getActiveFilterCount = () => {
+    return activeFilters.category.length + 
+           activeFilters.genre.length + 
+           (activeFilters.location ? 1 : 0) +
+           (activeFilters.dateRange ? 1 : 0) +
+           (activeFilters.priceRange[0] > 0 || activeFilters.priceRange[1] < 0.25 ? 1 : 0) +
+           (activeFilters.availability !== 'all' ? 1 : 0) +
+           (activeFilters.timeOfDay !== 'all' ? 1 : 0) +
+           (activeFilters.venueType !== 'all' ? 1 : 0) +
+           (activeFilters.favorites ? 1 : 0)
+  }
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault()
+    setCurrentView('search-results')
+    setShowSearchSuggestions(false)
+  }
+
+  const handleSuggestionClick = (event) => {
+    setSearchQuery(event.title)
+    setShowSearchSuggestions(false)
+    setCurrentView('search-results')
+  }
+
+  const openEventModal = (event) => {
+    setSelectedEvent(event)
+    setShowEventModal(true)
+    document.body.style.overflow = 'hidden' // Prevent background scroll
+  }
+
+  const closeEventModal = () => {
+    setSelectedEvent(null)
+    setShowEventModal(false)
+    document.body.style.overflow = 'unset' // Restore scroll
+  }
+
+  const toggleFavorite = (eventId) => {
+    setFavorites(prevFavorites => {
+      const newFavorites = prevFavorites.includes(eventId)
+        ? prevFavorites.filter(id => id !== eventId)
+        : [...prevFavorites, eventId]
+      
+      // Guardar en localStorage
+      localStorage.setItem('ticketsafer-favorites', JSON.stringify(newFavorites))
+      return newFavorites
+    })
+  }
+
+  const isFavorite = (eventId) => {
+    return favorites.includes(eventId)
+  }
+
+  const openCheckout = (event, ticketType = 'general') => {
+    setSelectedEvent(event)
+    setSelectedTickets([{
+      type: ticketType,
+      price: ticketType === 'general' ? event.price : 
+             ticketType === 'vip' ? Math.round(event.price * 2.5) : 
+             Math.round(event.price * 4),
+      quantity: 1
+    }])
+    setCheckoutStep(1)
+    setShowCheckout(true)
+    setShowEventModal(false)
+    document.body.style.overflow = 'hidden'
+  }
+
+  const closeCheckout = () => {
+    setShowCheckout(false)
+    setCheckoutStep(1)
+    setSelectedTickets([])
+    setCustomerInfo({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      idNumber: ''
+    })
+    setPaymentInfo({
+      method: 'crypto',
+      cardNumber: '',
+      expiryDate: '',
+      cvv: '',
+      cryptoWallet: ''
+    })
+    document.body.style.overflow = 'unset'
+  }
+
+  const nextCheckoutStep = () => {
+    if (checkoutStep < 4) {
+      setCheckoutStep(checkoutStep + 1)
+    }
+  }
+
+  const prevCheckoutStep = () => {
+    if (checkoutStep > 1) {
+      setCheckoutStep(checkoutStep - 1)
+    }
+  }
+
+  const updateTicketQuantity = (type, quantity) => {
+    setSelectedTickets(prev => 
+      prev.map(ticket => 
+        ticket.type === type ? { ...ticket, quantity: Math.max(0, quantity) } : ticket
+      ).filter(ticket => ticket.quantity > 0)
+    )
+  }
+
+  const addTicketType = (type, price) => {
+    const existing = selectedTickets.find(ticket => ticket.type === type)
+    if (existing) {
+      updateTicketQuantity(type, existing.quantity + 1)
+    } else {
+      setSelectedTickets(prev => [...prev, { type, price, quantity: 1 }])
+    }
+  }
+
+  const getTotalPrice = () => {
+    return selectedTickets.reduce((total, ticket) => total + (ticket.price * ticket.quantity), 0)
+  }
+
+  const getTotalTickets = () => {
+    return selectedTickets.reduce((total, ticket) => total + ticket.quantity, 0)
+  }
+
+  // Filtrar tickets según el estado seleccionado
+  const getFilteredTickets = () => {
+    switch (ticketFilter) {
+      case 'active':
+import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { useAccount } from 'wagmi'
+import { useState, useEffect } from 'react'
+import './TicketSafer.css'
+
+// Componente optimizado para carga de imágenes
+const OptimizedImage = ({ src, alt, className = "" }) => {
+  const [imageLoaded, setImageLoaded] = useState(false)
+  const [imageError, setImageError] = useState(false)
+
+  const handleImageLoad = () => {
+    setImageLoaded(true)
+  }
+
+  const handleImageError = () => {
+    setImageError(true)
+  }
+
+  if (imageError) {
+    return (
+      <div className={`image-placeholder ${className}`} style={{
+        background: 'linear-gradient(45deg, #ffd700, #ff6b35)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#000',
+        fontWeight: 'bold'
+      }}>
+        🎭 Imagen no disponible
+      </div>
+    )
+  }
+
+  return (
+    <>
+      {!imageLoaded && (
+        <div className={`image-placeholder ${className}`} style={{
+          background: 'linear-gradient(45deg, rgba(255, 215, 0, 0.1), rgba(255, 107, 53, 0.1))',
+          backgroundSize: '400% 400%',
+          animation: 'shimmerBg 2s ease-in-out infinite',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#ffd700'
+        }}>
+          ⏳ Cargando...
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className={`${className} ${imageLoaded ? 'loaded' : 'loading'}`}
+        onLoad={handleImageLoad}
+        onError={handleImageError}
+        style={{
+          display: imageLoaded ? 'block' : 'none'
+        }}
+        loading="lazy"
+      />
+    </>
+  )
+}
+
+// Mock data for events
+const mockEvents = [
+  {
+    id: 1,
+    title: "Coldplay - Buenos Aires",
+    artist: "Coldplay",
+    venue: "Estadio River Plate",
+    date: "2025-03-15",
+    time: "20:00",
+    price: 0.063,
+    currency: "ETH",
+    category: "Concierto",
+    genre: "Rock/Pop",
+    image: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80",
+    description: "Únete a Coldplay en su espectacular gira mundial 'Music of the Spheres'. Una experiencia única que combina música, tecnología y arte visual con efectos LED interactivos, confeti colorido y la mejor música de la banda británica. Prepárate para cantar junto a Chris Martin en una noche inolvidable llena de hits como 'Yellow', 'Viva La Vida' y 'Something Just Like This'.",
+    tags: ["internacional", "estadio", "rock"],
+    available: 5432,
+    city: "Buenos Aires",
+    country: "Argentina",
+    venueType: "estadio",
+    timeOfDay: "noche"
+  },
+  {
+    id: 2,
+    title: "Festival Lollapalooza 2025",
+    artist: "Múltiples Artistas",
+    venue: "Hipódromo de San Isidro",
+    date: "2025-04-20",
+    time: "12:00",
+    price: 0.12,
+    currency: "ETH",
+    category: "Festival",
+    genre: "Múltiple",
+    image: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+    description: "El festival más esperado del año llega a Buenos Aires con un lineup increíble de artistas internacionales. Tres días de música non-stop con múltiples escenarios, food trucks gourmet, experiencias interactivas y la mejor producción audiovisual. Una celebración épica de la cultura musical contemporánea.",
+    tags: ["festival", "múltiple", "hipódromo"],
+    available: 15000,
+    city: "Buenos Aires",
+    country: "Argentina",
+    venueType: "aire libre",
+    timeOfDay: "tarde"
+  },
+  {
+    id: 3,
+    title: "Tango Show - Café Tortoni",
+    artist: "Orquesta Típica Buenos Aires",
+    venue: "Café Tortoni",
+    date: "2025-02-28",
+    time: "21:30",
+    price: 0.019,
+    currency: "ETH",
+    category: "Show",
+    genre: "Tango",
+    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+    description: "Vive una auténtica experiencia de tango en el café más histórico de Buenos Aires. La Orquesta Típica Buenos Aires te transportará a la época dorada del tango con interpretaciones magistrales de Piazzolla, Gardel y otros grandes maestros. Incluye cena tradicional argentina y show de baile profesional.",
+    tags: ["tango", "cultural", "histórico"],
+    available: 120,
+    city: "Buenos Aires",
+    country: "Argentina",
+    venueType: "club",
+    timeOfDay: "noche"
+  },
+  {
+    id: 4,
+    title: "Ultra Music Festival Miami",
+    artist: "David Guetta, Martin Garrix",
+    venue: "Bayfront Park",
+    date: "2025-03-28",
+    time: "17:00",
+    price: 0.15,
+    currency: "ETH",
+    category: "Festival",
+    genre: "Electrónica",
+    image: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+    description: "El festival de música electrónica más prestigioso del mundo regresa a Miami. Tres días de sets inolvidables con los mejores DJs planetarios incluyendo David Guetta, Martin Garrix, Tiësto y muchos más. Escenarios espectaculares, efectos visuales de última generación y la energía única de la escena electrónica global.",
+    tags: ["electrónica", "internacional", "playa"],
+    available: 25000,
+    city: "Miami",
+    country: "Estados Unidos",
+    venueType: "aire libre",
+    timeOfDay: "tarde"
+  },
+  {
+    id: 5,
+    title: "Ed Sheeran - Acoustic Tour",
+    artist: "Ed Sheeran",
+    venue: "Luna Park",
+    date: "2025-05-10",
+    time: "21:00",
+    price: 0.05,
+    currency: "ETH",
+    category: "Concierto",
+    genre: "Pop/Folk",
+    image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+    description: "Ed Sheeran presenta su tour acústico más íntimo en el histórico Luna Park. Una experiencia única con solo su guitarra y loop station, interpretando sus mayores éxitos como 'Shape of You', 'Perfect' y 'Thinking Out Loud' en versiones acústicas nunca antes escuchadas. Una noche mágica e irrepetible.",
+    tags: ["acústico", "íntimo", "británico"],
+    available: 8500,
+    city: "Buenos Aires",
+    country: "Argentina",
+    venueType: "arena",
+    timeOfDay: "noche"
+  },
+  {
+    id: 6,
+    title: "Tango Milonga - El Caminito",
+    artist: "Orquesta Carlos Di Sarli",
+    venue: "Club Gricel",
+    date: "2025-02-25",
+    time: "23:30",
+    price: 0.01,
+    currency: "ETH",
+    category: "Show",
+    genre: "Tango",
+    image: "https://images.unsplash.com/photo-1504509546545-e000b4a62425?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+    description: "Sumérgete en la auténtica cultura porteña con esta milonga tradicional en el histórico Club Gricel. La legendaria Orquesta Carlos Di Sarli interpretará tangos clásicos mientras parejas experimentadas demuestran la elegancia y pasión del baile. Una experiencia cultural única en el corazón de Buenos Aires.",
+    tags: ["tango", "milonga", "tradicional"],
+    available: 80,
+    city: "Buenos Aires",
+    country: "Argentina",
+    venueType: "club",
+    timeOfDay: "madrugada"
+  },
+  {
+    id: 7,
+    title: "Obra de Teatro: El Rey León",
+    artist: "Compañía Musical Argentina",
+    venue: "Teatro Gran Rex",
+    date: "2025-03-08",
+    time: "15:00",
+    price: 0.035,
+    currency: "ETH",
+    category: "Teatro",
+    genre: "Musical",
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80",
+    description: "El musical más exitoso de Broadway llega finalmente a Buenos Aires. Una producción espectacular con más de 100 artistas en escena, vestuarios deslumbrantes, efectos especiales y las canciones inmortales de Elton John y Tim Rice. Una experiencia familiar perfecta que transporta a toda la audiencia a la sabana africana.",
+    tags: ["musical", "teatro", "familiar"],
+    available: 1200,
+    city: "Buenos Aires",
+    country: "Argentina",
+    venueType: "teatro",
+    timeOfDay: "tarde"
+  },
+  {
+    id: 8,
+    title: "Partido de Fútbol: Boca vs River",
+    artist: "Boca Juniors vs River Plate",
+    venue: "Estadio Alberto J. Armando",
+    date: "2025-03-12",
+    time: "17:00",
+    price: 0.075,
+    currency: "ETH",
+    category: "Deportes",
+    genre: "Fútbol",
+    image: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1393&q=80",
+    description: "El superclásico más importante y apasionante del fútbol argentino llega a La Bombonera. Boca Juniors vs River Plate en un partido que paraliza al país entero. Vive la pasión, los cánticos, el color y la emoción única de este enfrentamiento histórico en el estadio más emblemático del mundo.",
+    tags: ["fútbol", "superclásico", "estadio"],
+    available: 45000,
+    city: "Buenos Aires",
+    country: "Argentina",
+    venueType: "estadio",
+    timeOfDay: "tarde"
+  },
+  {
+    id: 9,
+    title: "Festival de Jazz en el Parque",
+    artist: "Múltiples Artistas de Jazz",
+    venue: "Parque Tres de Febrero",
+    date: "2025-04-05",
+    time: "14:00",
+    price: 0.017,
+    currency: "ETH",
+    category: "Festival",
+    genre: "Jazz",
+    image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+    description: "Un domingo perfecto de jazz al aire libre en los hermosos jardines del Parque Tres de Febrero. Artistas locales e internacionales se presentarán en múltiples escenarios con estilos que van desde el jazz tradicional hasta fusiones contemporáneas. Ambiente relajado, food trucks y actividades para toda la familia.",
+    tags: ["jazz", "aire libre", "festival"],
+    available: 3000,
+    city: "Buenos Aires",
+    country: "Argentina",
+    venueType: "aire libre",
+    timeOfDay: "tarde"
+  },
+  {
+    id: 10,
+    title: "Fiesta Electrónica: Warehouse",
+    artist: "DJ Snake, Skrillex",
+    venue: "Club Niceto",
+    date: "2025-02-29",
+    time: "01:00",
+    price: 0.025,
+    currency: "ETH",
+    category: "Festival",
+    genre: "Electrónica",
+    image: "https://images.unsplash.com/photo-1571266028243-d220bc1da145?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80",
+    description: "La noche electrónica más underground de Buenos Aires con los pesos pesados internacionales DJ Snake y Skrillex. Warehouse es la fiesta que define la escena electrónica alternativa de la ciudad. Sistema de sonido de última generación, visuales psicodélicos y una multitud que baila hasta el amanecer.",
+    tags: ["electrónica", "underground", "club"],
+    available: 600,
+    city: "Buenos Aires",
+    country: "Argentina",
+    venueType: "club",
+    timeOfDay: "madrugada"
+  }
+]
+
+function TicketSafer() {
+  const { address, isConnected } = useAccount()
+  const [currentView, setCurrentView] = useState('events') // 'home', 'events', 'my-tickets', 'create-event'
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false)
+  const [filteredEvents, setFilteredEvents] = useState(mockEvents)
+  const [activeFilters, setActiveFilters] = useState({
+    category: [],
+    genre: [],
+    priceRange: [0, 0.25],
+    dateRange: '',
+    location: '',
+    sortBy: 'date',
+    availability: 'all', // 'all', 'high', 'medium', 'low'
+    timeOfDay: 'all', // 'all', 'morning', 'afternoon', 'evening', 'night'
+    venueType: 'all', // 'all', 'stadium', 'arena', 'theater', 'club', 'outdoor'
+    distance: 50, // km radius
+    favorites: false // solo mostrar favoritos
+  })
+  const [showFilters, setShowFilters] = useState(false)
+  const [viewMode, setViewMode] = useState('grid')
+  const [savedSearches, setSavedSearches] = useState([
+    { id: 1, name: "Conciertos Económicos", filters: { category: ['Concierto'], priceRange: [0, 0.05] } },
+    { id: 2, name: "Festivales de Verano", filters: { category: ['Festival'], dateRange: 'this-month' } }
+  ])
+  const [showSaveSearch, setShowSaveSearch] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState(null)
+  const [showEventModal, setShowEventModal] = useState(false)
+  const [favorites, setFavorites] = useState(() => {
+    // Cargar favoritos del localStorage
+    const savedFavorites = localStorage.getItem('ticketsafer-favorites')
+    return savedFavorites ? JSON.parse(savedFavorites) : []
+  })
+  const [showCheckout, setShowCheckout] = useState(false)
+  const [checkoutStep, setCheckoutStep] = useState(1) // 1: Tickets, 2: Info, 3: Pago, 4: Confirmación
+  const [selectedTickets, setSelectedTickets] = useState([])
+  const [customerInfo, setCustomerInfo] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    idNumber: ''
+  })
+  const [paymentInfo, setPaymentInfo] = useState({
+    method: 'crypto', // 'crypto', 'card'
+    cardNumber: '',
+    expiryDate: '',
+    cvv: '',
+    cryptoWallet: ''
+  })
+  
+  // User tickets state
+  const [userTickets, setUserTickets] = useState([
+    {
+      id: 1,
+      eventId: 1,
+      eventTitle: "Coldplay - Buenos Aires",
+      venue: "Estadio River Plate",
+      date: "2025-03-15",
+      time: "20:00",
+      section: "Platea Baja",
+      seat: "Fila 12, Asiento 8",
+      price: 0.063,
+      currency: "ETH",
+      status: "confirmed",
+      qrCode: "QR123456789",
+      ticketType: "VIP",
+      image: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80"
+    },
+    {
+      id: 2,
+      eventId: 2,
+      eventTitle: "Festival Lollapalooza 2025",
+      venue: "Hipódromo de San Isidro",
+      date: "2025-04-20",
+      time: "12:00",
+      section: "General",
+      seat: "Acceso General",
+      price: 0.12,
+      currency: "ETH",
+      status: "confirmed",
+      qrCode: "QR987654321",
+      ticketType: "General",
+      image: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+    },
+    {
+      id: 3,
+      eventId: 7,
+      eventTitle: "Obra de Teatro: El Rey León",
+      venue: "Teatro Gran Rex",
+      date: "2025-03-08",
+      time: "15:00",
+      section: "Platea Premium",
+      seat: "Fila 5, Asiento 15",
+      price: 0.035,
+      currency: "ETH",
+      status: "pending",
+      qrCode: "QR456789123",
+      ticketType: "Premium",
+      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80"
+    }
+  ])
+
+  // Create event form state
+  const [eventForm, setEventForm] = useState({
+    title: '',
+    description: '',
+    category: '',
+    genre: '',
+    date: '',
+    time: '',
+    venue: '',
+    address: '',
+    city: '',
+    country: '',
+    image: '',
+    tags: [],
+    ticketTypes: [
+      { id: 1, name: 'General', price: 0, quantity: 0, description: 'Acceso general al evento' }
+    ]
+  })
+  const [createEventStep, setCreateEventStep] = useState(1) // 1: Info básica, 2: Detalles, 3: Tickets, 4: Confirmación
+  const [ticketFilter, setTicketFilter] = useState('all') // 'all', 'active', 'used', 'expired'
+
+  // Search suggestions
+  const getSearchSuggestions = () => {
+    if (!searchQuery) return []
+    
+    const suggestions = []
+    mockEvents.forEach(event => {
+      if (event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          event.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          event.venue.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          event.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          event.genre.toLowerCase().includes(searchQuery.toLowerCase())) {
+        suggestions.push(event)
+      }
+    })
+    return suggestions.slice(0, 5)
+  }
+
+  // Advanced filter logic
+  useEffect(() => {
+    let filtered = mockEvents
+
+    // Text search
+    if (searchQuery) {
+      filtered = filtered.filter(event =>
+        event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.venue.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.genre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    }
+
+    // Category filter
+    if (activeFilters.category.length > 0) {
+      filtered = filtered.filter(event =>
+        activeFilters.category.includes(event.category)
+      )
+    }
+
+    // Genre filter
+    if (activeFilters.genre.length > 0) {
+      filtered = filtered.filter(event =>
+        activeFilters.genre.includes(event.genre)
+      )
+    }
+
+    // Price range filter
+    filtered = filtered.filter(event =>
+      event.price >= activeFilters.priceRange[0] &&
+      event.price <= activeFilters.priceRange[1]
+    )
+
+    // Location filter
+    if (activeFilters.location) {
+      filtered = filtered.filter(event =>
+        event.city.toLowerCase().includes(activeFilters.location.toLowerCase()) ||
+        event.country.toLowerCase().includes(activeFilters.location.toLowerCase()) ||
+        event.venue.toLowerCase().includes(activeFilters.location.toLowerCase())
+      )
+    }
+
+    // Date range filter
+    if (activeFilters.dateRange) {
+      const now = new Date()
+      const today = new Date(now.setHours(0, 0, 0, 0))
+      
+      filtered = filtered.filter(event => {
+        const eventDate = new Date(event.date)
+        
+        switch (activeFilters.dateRange) {
+          case 'today':
+            return eventDate.toDateString() === today.toDateString()
+          case 'tomorrow':
+            const tomorrow = new Date(today)
+            tomorrow.setDate(tomorrow.getDate() + 1)
+            return eventDate.toDateString() === tomorrow.toDateString()
+          case 'this-week':
+            const weekEnd = new Date(today)
+            weekEnd.setDate(weekEnd.getDate() + 7)
+            return eventDate >= today && eventDate <= weekEnd
+          case 'this-month':
+            const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+            return eventDate >= today && eventDate <= monthEnd
+          case 'next-month':
+            const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1)
+            const nextMonthEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0)
+            return eventDate >= nextMonthStart && eventDate <= nextMonthEnd
+          default:
+            return true
+        }
+      })
+    }
+
+    // Availability filter
+    if (activeFilters.availability !== 'all') {
+      filtered = filtered.filter(event => {
+        const availabilityLevel = event.available > 1000 ? 'high' : 
+                                 event.available > 100 ? 'medium' : 'low'
+        return availabilityLevel === activeFilters.availability
+      })
+    }
+
+    // Time of day filter
+    if (activeFilters.timeOfDay !== 'all') {
+      filtered = filtered.filter(event => {
+        const hour = parseInt(event.time.split(':')[0])
+        switch (activeFilters.timeOfDay) {
+          case 'morning': return hour >= 6 && hour < 12
+          case 'afternoon': return hour >= 12 && hour < 18
+          case 'evening': return hour >= 18 && hour < 22
+          case 'night': return hour >= 22 || hour < 6
+          default: return true
+        }
+      })
+    }
+
+    // Venue type filter (based on venue name patterns)
+    if (activeFilters.venueType !== 'all') {
+      filtered = filtered.filter(event => {
+        const venue = event.venue.toLowerCase()
+        switch (activeFilters.venueType) {
+          case 'stadium': return venue.includes('estadio') || venue.includes('stadium')
+          case 'arena': return venue.includes('arena') || venue.includes('coliseo')
+          case 'theater': return venue.includes('teatro') || venue.includes('theater')
+          case 'club': return venue.includes('club') || venue.includes('bar')
+          case 'outdoor': return venue.includes('parque') || venue.includes('park') || venue.includes('hipódromo')
+          default: return true
+        }
+      })
+    }
+
+    // Favorites filter
+    if (activeFilters.favorites) {
+      filtered = filtered.filter(event => favorites.includes(event.id))
+    }
+
+    // Sorting
+    filtered.sort((a, b) => {
+      switch (activeFilters.sortBy) {
+        case 'price-low':
+          return a.price - b.price
+        case 'price-high':
+          return b.price - a.price
+        case 'popularity':
+          return b.available - a.available
+        case 'alphabetical':
+          return a.title.localeCompare(b.title)
+        case 'availability':
+          return b.available - a.available
+        case 'distance':
+          // Simple mock distance sorting
+          return a.city.localeCompare(b.city)
+        default:
+          return new Date(a.date) - new Date(b.date)
+      }
+    })
+
+    setFilteredEvents(filtered)
+  }, [searchQuery, activeFilters, favorites])
+
+  const handleFilterChange = (filterType, value) => {
+    setActiveFilters(prev => {
+      const newFilters = { ...prev }
+      
+      if (filterType === 'category' || filterType === 'genre') {
+        if (newFilters[filterType].includes(value)) {
+          newFilters[filterType] = newFilters[filterType].filter(item => item !== value)
+        } else {
+          newFilters[filterType] = [...newFilters[filterType], value]
+        }
+      } else {
+        newFilters[filterType] = value
+      }
+      
+      return newFilters
+    })
+  }
+
+  const clearAllFilters = () => {
+    setActiveFilters({
+      category: [],
+      genre: [],
+      priceRange: [0, 0.25],
+      dateRange: '',
+      location: '',
+      sortBy: 'date',
+      availability: 'all',
+      timeOfDay: 'all',
+      venueType: 'all',
+      distance: 50,
+      favorites: false
+    })
+    setSearchQuery('')
+  }
+
+  const getActiveFilterCount = () => {
+    return activeFilters.category.length + 
+           activeFilters.genre.length + 
+           (activeFilters.location ? 1 : 0) +
+           (activeFilters.dateRange ? 1 : 0) +
+           (activeFilters.priceRange[0] > 0 || activeFilters.priceRange[1] < 0.25 ? 1 : 0) +
+           (activeFilters.availability !== 'all' ? 1 : 0) +
+           (activeFilters.timeOfDay !== 'all' ? 1 : 0) +
+           (activeFilters.venueType !== 'all' ? 1 : 0) +
+           (activeFilters.favorites ? 1 : 0)
+  }
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault()
+    setCurrentView('search-results')
+    setShowSearchSuggestions(false)
+  }
+
+  const handleSuggestionClick = (event) => {
+    setSearchQuery(event.title)
+    setShowSearchSuggestions(false)
+    setCurrentView('search-results')
+  }
+
+  const openEventModal = (event) => {
+    setSelectedEvent(event)
+    setShowEventModal(true)
+    document.body.style.overflow = 'hidden' // Prevent background scroll
+  }
+
+  const closeEventModal = () => {
+    setSelectedEvent(null)
+    setShowEventModal(false)
+    document.body.style.overflow = 'unset' // Restore scroll
+  }
+
+  const toggleFavorite = (eventId) => {
+    setFavorites(prevFavorites => {
+      const newFavorites = prevFavorites.includes(eventId)
+        ? prevFavorites.filter(id => id !== eventId)
+        : [...prevFavorites, eventId]
+      
+      // Guardar en localStorage
+      localStorage.setItem('ticketsafer-favorites', JSON.stringify(newFavorites))
+      return newFavorites
+    })
+  }
+
+  const isFavorite = (eventId) => {
+    return favorites.includes(eventId)
+  }
+
+  const openCheckout = (event, ticketType = 'general') => {
+    setSelectedEvent(event)
+    setSelectedTickets([{
+      type: ticketType,
+      price: ticketType === 'general' ? event.price : 
+             ticketType === 'vip' ? Math.round(event.price * 2.5) : 
+             Math.round(event.price * 4),
+      quantity: 1
+    }])
+    setCheckoutStep(1)
+    setShowCheckout(true)
+    setShowEventModal(false)
+    document.body.style.overflow = 'hidden'
+  }
+
+  const closeCheckout = () => {
+    setShowCheckout(false)
+    setCheckoutStep(1)
+    setSelectedTickets([])
+    setCustomerInfo({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      idNumber: ''
+    })
+    setPaymentInfo({
+      method: 'crypto',
+      cardNumber: '',
+      expiryDate: '',
+      cvv: '',
+      cryptoWallet: ''
+    })
+    document.body.style.overflow = 'unset'
+  }
+
+  const nextCheckoutStep = () => {
+    if (checkoutStep < 4) {
+      setCheckoutStep(checkoutStep + 1)
+    }
+  }
+
+  const prevCheckoutStep = () => {
+    if (checkoutStep > 1) {
+      setCheckoutStep(checkoutStep - 1)
+    }
+  }
+
+  const updateTicketQuantity = (type, quantity) => {
+    setSelectedTickets(prev => 
+      prev.map(ticket => 
+        ticket.type === type ? { ...ticket, quantity: Math.max(0, quantity) } : ticket
+      ).filter(ticket => ticket.quantity > 0)
+    )
+  }
+
+  const addTicketType = (type, price) => {
+    const existing = selectedTickets.find(ticket => ticket.type === type)
+    if (existing) {
+      updateTicketQuantity(type, existing.quantity + 1)
+    } else {
+      setSelectedTickets(prev => [...prev, { type, price, quantity: 1 }])
+    }
+  }
+
+  const getTotalPrice = () => {
+    return selectedTickets.reduce((total, ticket) => total + (ticket.price * ticket.quantity), 0)
+  }
+
+  const getTotalTickets = () => {
+    return selectedTickets.reduce((total, ticket) => total + ticket.quantity, 0)
+  }
+
+  // Estados de paginación
+  const [currentPage, setCurrentPage] = useState(1)
+  const [eventsPerPage] = useState(20)
+  const [isPageLoading, setIsPageLoading] = useState(false)
+
+  // Funciones de paginación
+  const getPaginatedEvents = () => {
+    const startIndex = (currentPage - 1) * eventsPerPage
+    const endIndex = startIndex + eventsPerPage
+    return filteredEvents.slice(startIndex, endIndex)
+  }
+
+  const getTotalPages = () => {
+    return Math.ceil(filteredEvents.length / eventsPerPage)
+  }
+
+  const goToPage = (page) => {
+    // Validar que la página esté en el rango válido
+    const totalPages = Math.ceil(filteredEvents.length / eventsPerPage)
+    if (page < 1 || page > totalPages) return
+    
+    // Evitar cambios duplicados
+    if (page === currentPage) return
+    
+    // Activar estado de carga
+    setIsPageLoading(true)
+    
+    // Cambiar página con un pequeño delay para mostrar el estado de carga
+    setTimeout(() => {
+      setCurrentPage(page)
+      
+      // Scroll suave al inicio de los eventos
+      setTimeout(() => {
+        const eventsSection = document.querySelector('.events-results')
+        if (eventsSection) {
+          eventsSection.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start',
+            inline: 'nearest'
+          })
+        }
+        
+        // Desactivar estado de carga después del scroll
+        setTimeout(() => {
+          setIsPageLoading(false)
+        }, 300)
+      }, 100)
+    }, 150)
+  }
+
+  const goToNextPage = () => {
+    const totalPages = Math.ceil(filteredEvents.length / eventsPerPage)
+    if (currentPage < totalPages) {
+      goToPage(currentPage + 1)
+    }
+  }
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) {
+      goToPage(currentPage - 1)
+    }
+  }
+
+  // Resetear página cuando cambien los filtros
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filteredEvents])
+
+  // Asegurar que la página actual sea válida cuando cambien los eventos filtrados
+  useEffect(() => {
+    const totalPages = Math.ceil(filteredEvents.length / eventsPerPage)
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages)
+    }
+  }, [filteredEvents, currentPage, eventsPerPage])
+
+  // Estado para filtros de tickets
+  const [ticketFilter, setTicketFilter] = useState('all') // 'all', 'active', 'used', 'expired'
+
+  // Estado para crear eventos
+  const [createEventStep, setCreateEventStep] = useState(1) // 1: Info básica, 2: Detalles, 3: Tickets, 4: Confirmación
+  const [eventForm, setEventForm] = useState({
+    // Información básica
+    title: '',
+    artist: '',
+    description: '',
+    category: '',
+    genre: '',
+    
+    // Lugar y fecha
+    venue: '',
+    address: '',
+    city: '',
+    country: 'Argentina',
+    date: '',
+    time: '',
+    doors: '',
+    
+    // Configuración
+    ageRestriction: '',
+    maxCapacity: '',
+    eventType: 'concert', // 'concert', 'festival', 'theater', 'sports'
+    
+    // Medios
+    coverImage: '',
+    additionalImages: [],
+    
+    // Tickets
+    ticketTypes: [
+      {
+        id: 1,
+        name: 'General',
+        description: 'Acceso general al evento',
+        price: '',
+        quantity: '',
+        maxPerPerson: 4,
+        isActive: true
+      }
+    ],
+    
+    // Términos y condiciones
+    refundPolicy: 'no-refund',
+    transferable: true,
+    resaleAllowed: true,
+    terms: ''
+  })
+
+  // Mock de tickets NFT del usuario con ejemplos más realistas
+  const userTickets = [
+    {
+      id: 'NFT-001',
+      eventTitle: 'Bad Bunny - World Hottest Tour',
+      artist: 'Bad Bunny',
+      venue: 'Estadio River Plate',
+      city: 'Buenos Aires, Argentina',
+      date: '2025-03-15',
+      time: '21:00',
+      ticketType: 'VIP',
+      seat: 'Campo VIP - Sector A - Posición 247',
+      price: 0.15,
+      purchaseDate: '2025-01-15',
+      txHash: '0x8f2e4a1b3c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f',
+      image: 'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+      status: 'active',
+      qrCode: 'QR_DATA_BADBUNNY_VIP_247',
+              isResaleable: true,
+        originalPrice: 0.135,
+        fees: 0.015
+      },
+    {
+      id: 'NFT-002',
+      eventTitle: 'Dua Lipa - Future Nostalgia Tour',
+      artist: 'Dua Lipa',
+      venue: 'Movistar Arena',
+      city: 'Buenos Aires, Argentina',
+      date: '2025-02-28',
+      time: '21:30',
+      ticketType: 'Platinum',
+      seat: 'Platea Preferencial - Fila 8 - Butaca 15',
+      price: 0.12,
+      purchaseDate: '2025-01-10',
+      txHash: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b',
+      image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+      status: 'active',
+      qrCode: 'QR_DATA_DUALIPA_PLAT_815',
+      isResaleable: true,
+              originalPrice: 0.105,
+        fees: 0.015
+    },
+    {
+      id: 'NFT-003',
+      eventTitle: 'Coldplay - Music of the Spheres',
+      artist: 'Coldplay',
+      venue: 'Estadio Único de La Plata',
+      city: 'La Plata, Argentina',
+      date: '2024-12-10',
+      time: '20:00',
+      ticketType: 'General',
+      seat: 'Campo General - Zona C',
+      price: 0.075,
+      purchaseDate: '2024-10-15',
+      txHash: '0x9f8e7d6c5b4a3928f1e0d9c8b7a6958473625149382716450593847261738495',
+      image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+      status: 'used',
+      qrCode: 'QR_DATA_COLDPLAY_GEN_C003',
+      isResaleable: false,
+      originalPrice: 0.063,
+      fees: 0.012,
+      usedDate: '2024-12-10'
+    },
+    {
+      id: 'NFT-004',
+      eventTitle: 'Lollapalooza Argentina 2025',
+      artist: 'Festival - 3 Días',
+      venue: 'Hipódromo de San Isidro',
+      city: 'San Isidro, Argentina',
+      date: '2025-03-28',
+      time: '12:00',
+      ticketType: 'VIP',
+      seat: 'Pase 3 Días - VIP Experience',
+      price: 0.19,
+      purchaseDate: '2024-12-01',
+      txHash: '0x2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d',
+      image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+      status: 'active',
+      qrCode: 'QR_DATA_LOLLA25_VIP_3DAYS',
+      isResaleable: true,
+      originalPrice: 0.17,
+      fees: 0.02
+    },
+    {
+      id: 'NFT-005',
+      eventTitle: 'Ultra Music Festival Argentina',
+      artist: 'Martin Garrix, Tiësto, David Guetta',
+      venue: 'Costanera Sur',
+      city: 'Buenos Aires, Argentina',
+      date: '2024-11-15',
+      time: '15:00',
+      ticketType: 'General',
+      seat: 'General Admission - Day 1',
+      price: 0.05,
+      purchaseDate: '2024-09-20',
+      txHash: '0x4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f',
+      image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+      status: 'expired',
+      qrCode: 'QR_DATA_ULTRA_GEN_DAY1',
+      isResaleable: false,
+      originalPrice: 0.042,
+      fees: 0.008
+    },
+    {
+      id: 'NFT-006',
+      eventTitle: 'Taylor Swift - Eras Tour',
+      artist: 'Taylor Swift',
+      venue: 'Estadio River Plate',
+      city: 'Buenos Aires, Argentina',
+      date: '2024-11-09',
+      time: '20:00',
+      ticketType: 'Platinum',
+      seat: 'San Martín Baja - Fila 12 - Asiento 8',
+      price: 0.21,
+      purchaseDate: '2024-08-15',
+      txHash: '0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b',
+      image: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+      status: 'used',
+      qrCode: 'QR_DATA_TAYLOR_PLAT_SM12_8',
+      isResaleable: false,
+      originalPrice: 0.19,
+      fees: 0.02,
+      usedDate: '2024-11-09'
+    },
+    {
+      id: 'NFT-007',
+      eventTitle: 'Bizarrap Session Live',
+      artist: 'Bizarrap',
+      venue: 'Vélez Sarsfield',
+      city: 'Buenos Aires, Argentina',
+      date: '2025-05-20',
+      time: '21:00',
+      ticketType: 'VIP',
+      seat: 'Campo VIP - Acceso Backstage',
+      price: 0.093,
+      purchaseDate: '2025-01-25',
+      txHash: '0x3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f',
+      image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+      status: 'active',
+      qrCode: 'QR_DATA_BZRP_VIP_BACKSTAGE',
+      isResaleable: true,
+      originalPrice: 0.076,
+      fees: 0.017
+    },
+    {
+      id: 'NFT-008',
+      eventTitle: 'Rock in Rio Buenos Aires',
+      artist: 'Foo Fighters, Red Hot Chili Peppers',
+      venue: 'Autódromo de Buenos Aires',
+      city: 'Buenos Aires, Argentina',
+      date: '2024-10-05',
+      time: '16:00',
+      ticketType: 'General',
+      seat: 'Pista - Sector B',
+      price: 0.04,
+      purchaseDate: '2024-07-10',
+      txHash: '0x6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a',
+      image: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+      status: 'expired',
+      qrCode: 'QR_DATA_ROCKINRIO_GEN_B',
+      isResaleable: false,
+      originalPrice: 0.034,
+      fees: 0.006
+    },
+    {
+      id: 'NFT-009',
+      eventTitle: 'Tini - Un Mechón de Pelo Tour',
+      artist: 'Tini',
+      venue: 'Luna Park',
+      city: 'Buenos Aires, Argentina',
+      date: '2025-04-12',
+      time: '21:00',
+      ticketType: 'Platinum',
+      seat: 'Platea Premium - Fila 5 - Asiento 22',
+      price: 0.063,
+      purchaseDate: '2025-01-18',
+      txHash: '0x5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e',
+      image: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+      status: 'active',
+      qrCode: 'QR_DATA_TINI_PLAT_P5_22',
+      isResaleable: true,
+      originalPrice: 0.05,
+      fees: 0.013
+    },
+    {
+      id: 'NFT-010',
+      eventTitle: 'Paulo Londra - Back to the Game',
+      artist: 'Paulo Londra',
+      venue: 'Estadio Malvinas Argentinas',
+      city: 'Mendoza, Argentina',
+      date: '2025-06-15',
+      time: '20:30',
+      ticketType: 'General',
+      seat: 'Tribuna Norte - Sector 12',
+      price: 0.036,
+      purchaseDate: '2025-01-22',
+      txHash: '0x8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d',
+      image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+      status: 'active',
+      qrCode: 'QR_DATA_LONDRA_GEN_N12',
+      isResaleable: true,
+      originalPrice: 0.03,
+      fees: 0.006
+    }
+  ]
+
+  // Filtrar tickets según el estado seleccionado
+  const getFilteredTickets = () => {
+    switch (ticketFilter) {
+      case 'active':
+        return userTickets.filter(ticket => ticket.status === 'active')
+      case 'used':
+        return userTickets.filter(ticket => ticket.status === 'used')
+      case 'expired':
+        return userTickets.filter(ticket => ticket.status === 'expired')
+      default:
+        return userTickets
+    }
+  }
+
+  // Funciones para crear eventos
+  const updateEventForm = (field, value) => {
+    setEventForm(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const nextCreateStep = () => {
+    if (createEventStep < 4) {
+      setCreateEventStep(createEventStep + 1)
+    }
+  }
+
+  const prevCreateStep = () => {
+    if (createEventStep > 1) {
+      setCreateEventStep(createEventStep - 1)
+    }
+  }
+
+  const addNewTicketType = () => {
+    const newTicket = {
+      id: eventForm.ticketTypes.length + 1,
+      name: '',
+      description: '',
+      price: '',
+      quantity: '',
+      maxPerPerson: 4,
+      isActive: true
+    }
+    setEventForm(prev => ({
+      ...prev,
+      ticketTypes: [...prev.ticketTypes, newTicket]
+    }))
+  }
+
+  const updateTicketType = (id, field, value) => {
+    setEventForm(prev => ({
+      ...prev,
+      ticketTypes: prev.ticketTypes.map(ticket =>
+        ticket.id === id ? { ...ticket, [field]: value } : ticket
+      )
+    }))
+  }
+
+  const removeTicketType = (id) => {
+    setEventForm(prev => ({
+      ...prev,
+      ticketTypes: prev.ticketTypes.filter(ticket => ticket.id !== id)
+    }))
+  }
+
+  const getTotalTicketsToSell = () => {
+    return eventForm.ticketTypes.reduce((total, ticket) => 
+      total + (parseInt(ticket.quantity) || 0), 0
+    )
+  }
+
+  const getEstimatedRevenue = () => {
+    return eventForm.ticketTypes.reduce((total, ticket) => 
+      total + ((parseInt(ticket.quantity) || 0) * (parseFloat(ticket.price) || 0)), 0
+    )
+  }
+
+  // My Tickets View
+  if (currentView === 'my-tickets') {
+    const activeTickets = userTickets.filter(ticket => ticket.status === 'active')
+    const usedTickets = userTickets.filter(ticket => ticket.status === 'used')
+    const expiredTickets = userTickets.filter(ticket => ticket.status === 'expired')
+    const filteredTickets = getFilteredTickets()
+
+    return (
+      <div className="ticket-safer">
+        {/* Elementos Decorativos Metálicos */}
+        <div className="wireframe-grid"></div>
+        <div className="metallic-orb metallic-orb-1"></div>
+        <div className="metallic-orb metallic-orb-2"></div>
+        <div className="metallic-orb metallic-orb-3"></div>
+        <div className="metallic-orb metallic-orb-4"></div>
+        <div className="geometric-shape geometric-triangle"></div>
+        <div className="geometric-shape geometric-diamond"></div>
+        <div className="geometric-shape geometric-sphere"></div>
+        <div className="geometric-shape geometric-cube"></div>
+        
+        <header className="header">
+          <div className="container">
+            <h1 className="logo">🎫 TicketSafer</h1>
+            <nav className="nav">
+              <a href="#" onClick={(e) => { e.preventDefault(); setCurrentView('events') }}>Eventos</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); setCurrentView('my-tickets') }} className="active">Mis Tickets</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); setCurrentView('create-event') }}>Crear Evento</a>
+            </nav>
+            <ConnectButton />
+          </div>
+        </header>
+
+        <main className="main">
+          <div className="container">
+            {!isConnected ? (
+              <section className="my-tickets-intro">
+                <div className="connect-prompt">
+                  <h2>🔐 Conecta tu Wallet</h2>
+                  <p>Para ver tus tickets NFT necesitas conectar tu wallet de Ethereum</p>
+                  <ConnectButton />
+                </div>
+              </section>
+            ) : (
+              <section className="my-tickets">
+                <div className="my-tickets-header">
+                  <div className="back-nav">
+                    <button onClick={() => setCurrentView('home')} className="back-btn">
+                      ← Volver al Inicio
+                    </button>
+                  </div>
+                  <h2>🎫 Mi Colección de Tickets NFT</h2>
+                  <p>Gestiona tus tickets, transfiérelos o prepáralos para la reventa</p>
+                  
+                  <div className="tickets-stats">
+                    <div className="stat-card">
+                      <span className="stat-number">{activeTickets.length}</span>
+                      <span className="stat-label">Tickets Activos</span>
+                    </div>
+                    <div className="stat-card">
+                      <span className="stat-number">{usedTickets.length}</span>
+                      <span className="stat-label">Tickets Usados</span>
+                    </div>
+                    <div className="stat-card">
+                      <span className="stat-number">{userTickets.length}</span>
+                      <span className="stat-label">Total Collection</span>
+                    </div>
+                    <div className="stat-card">
+                      <span className="stat-number">{userTickets.reduce((total, ticket) => total + ticket.price, 0).toFixed(3)} ETH</span>
+                      <span className="stat-label">Valor Total</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="tickets-filters">
+                  <div className="filter-tabs">
+                    <button 
+                      className={`filter-tab ${ticketFilter === 'all' ? 'active' : ''}`}
+                      onClick={() => setTicketFilter('all')}
+                    >
+                      🎫 Todos ({userTickets.length})
+                    </button>
+                    <button 
+                      className={`filter-tab ${ticketFilter === 'active' ? 'active' : ''}`}
+                      onClick={() => setTicketFilter('active')}
+                    >
+                      ✅ Activos ({activeTickets.length})
+                    </button>
+                    <button 
+                      className={`filter-tab ${ticketFilter === 'used' ? 'active' : ''}`}
+                      onClick={() => setTicketFilter('used')}
+                    >
+                      ✔️ Usados ({usedTickets.length})
+                    </button>
+                    <button 
+                      className={`filter-tab ${ticketFilter === 'expired' ? 'active' : ''}`}
+                      onClick={() => setTicketFilter('expired')}
+                    >
+                      ⏰ Expirados ({expiredTickets.length})
+                    </button>
+                  </div>
+                </div>
+
+                <div className="my-tickets-grid">
+                  {filteredTickets.map(ticket => (
+                    <div key={ticket.id} className={`ticket-nft-card ${ticket.status}`}>
+                      <div className="ticket-nft-header">
+                        <div className="nft-badge">
+                          <span className="nft-id">#{ticket.id}</span>
+                          <span className={`status-badge ${ticket.status}`}>
+                            {ticket.status === 'active' && '✅ Activo'}
+                            {ticket.status === 'used' && '✔️ Usado'}
+                            {ticket.status === 'expired' && '⏰ Expirado'}
+                          </span>
+                        </div>
+                        <div className="ticket-actions">
+                          {ticket.status === 'active' && (
+                            <>
+                              <button className="action-btn qr-btn" title="Ver QR">
+                                📱
+                              </button>
+                              {ticket.isResaleable && (
+                                <button className="action-btn resale-btn" title="Revender">
+                                  💰
+                                </button>
+                              )}
+                              <button className="action-btn transfer-btn" title="Transferir">
+                                📤
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="ticket-nft-image">
+                        <OptimizedImage src={ticket.image} alt={ticket.eventTitle} />
+                        <div className="ticket-overlay">
+                          <span className="ticket-type-badge">{ticket.ticketType}</span>
+                        </div>
+                      </div>
+
+                      <div className="ticket-nft-content">
+                        <h3 className="ticket-event-title">{ticket.eventTitle}</h3>
+                        <p className="ticket-artist">{ticket.artist}</p>
+                        
+                        <div className="ticket-details">
+                          <div className="detail-row">
+                            <span className="detail-icon">📍</span>
+                            <span className="detail-text">{ticket.venue}, {ticket.city}</span>
+                          </div>
+                          <div className="detail-row">
+                            <span className="detail-icon">📅</span>
+                            <span className="detail-text">
+                              {new Date(ticket.date).toLocaleDateString('es-ES')} • {ticket.time}
+                            </span>
+                          </div>
+                          <div className="detail-row">
+                            <span className="detail-icon">🎫</span>
+                            <span className="detail-text">{ticket.seat}</span>
+                          </div>
+                          <div className="detail-row">
+                            <span className="detail-icon">💎</span>
+                            <span className="detail-text">Comprado: {new Date(ticket.purchaseDate).toLocaleDateString('es-ES')}</span>
+                          </div>
+                        </div>
+
+                        <div className="ticket-nft-footer">
+                          <div className="ticket-price-info">
+                            <div className="price-breakdown">
+                              <div className="price-item">
+                                <span className="price-label">Precio base:</span>
+                                <span className="price-value">{ticket.originalPrice} ETH</span>
+                              </div>
+                              <div className="price-item">
+                                <span className="price-label">Fees:</span>
+                                <span className="price-value">{ticket.fees} ETH</span>
+                              </div>
+                              <div className="price-item total-price">
+                                <span className="price-label">Total pagado:</span>
+                                <span className="price-value">{ticket.price} ETH</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {ticket.status === 'active' && (
+                            <div className="ticket-main-actions">
+                              <button className="btn-primary-ticket">
+                                📱 Ver QR Code
+                              </button>
+                              <button className="btn-secondary-ticket">
+                                🔗 Ver en Blockchain
+                              </button>
+                            </div>
+                          )}
+                          
+                          {ticket.status === 'used' && (
+                            <div className="used-info">
+                              <div className="used-details">
+                                <span className="used-text">✅ Ticket utilizado</span>
+                                {ticket.usedDate && (
+                                  <span className="used-date">
+                                    Usado el {new Date(ticket.usedDate).toLocaleDateString('es-ES')}
+                                  </span>
+                                )}
+                              </div>
+                              <button className="btn-secondary-ticket">
+                                🔗 Ver en Blockchain
+                              </button>
+                            </div>
+                          )}
+                          
+                          {ticket.status === 'expired' && (
+                            <div className="expired-info">
+                              <span className="expired-text">⏰ Ticket expirado</span>
+                              <button className="btn-secondary-ticket">
+                                🔗 Ver en Blockchain
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="blockchain-info">
+                          <span className="tx-hash" title={ticket.txHash}>
+                            🔗 {ticket.txHash.slice(0, 10)}...{ticket.txHash.slice(-8)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {filteredTickets.length === 0 && userTickets.length > 0 && (
+                  <div className="no-filtered-tickets">
+                    <div className="no-tickets-icon">🔍</div>
+                    <h3>No hay tickets en esta categoría</h3>
+                    <p>Prueba con otro filtro para ver tus tickets.</p>
+                    <button 
+                      className="btn-secondary-large"
+                      onClick={() => setTicketFilter('all')}
+                    >
+                      Ver Todos los Tickets
+                    </button>
+                  </div>
+                )}
+
+                {userTickets.length === 0 && (
+                  <div className="no-tickets">
+                    <div className="no-tickets-icon">🎫</div>
+                    <h3>No tienes tickets NFT aún</h3>
+                    <p>¡Explora eventos increíbles y consigue tus primeros tickets NFT!</p>
+                    <button 
+                      className="btn-primary-large glow-pulse"
+                      onClick={() => setCurrentView('events')}
+                    >
+                      🎪 Explorar Eventos
+                    </button>
+                  </div>
+                )}
+              </section>
+            )}
+          </div>
+        </main>
+
+        <footer className="footer">
+          <div className="container">
+            <p>&copy; 2025 TicketSafer - Powered by Blockchain</p>
+          </div>
+        </footer>
+      </div>
+    )
+  }
+
+  // Create Event View
+  if (currentView === 'create-event') {
+    return (
+      <div className="ticket-safer">
+        {/* Elementos Decorativos Metálicos */}
+        <div className="wireframe-grid"></div>
+        <div className="metallic-orb metallic-orb-1"></div>
+        <div className="metallic-orb metallic-orb-2"></div>
+        <div className="metallic-orb metallic-orb-3"></div>
+        <div className="metallic-orb metallic-orb-4"></div>
+        <div className="geometric-shape geometric-triangle"></div>
+        <div className="geometric-shape geometric-diamond"></div>
+        <div className="geometric-shape geometric-sphere"></div>
+        <div className="geometric-shape geometric-cube"></div>
+        
+        <header className="header">
+          <div className="container">
+            <h1 className="logo">🎫 TicketSafer</h1>
+            <nav className="nav">
+              <a href="#" onClick={() => setCurrentView('events')}>Eventos</a>
+              <a href="#" onClick={() => setCurrentView('my-tickets')}>Mis Tickets</a>
+              <a href="#" onClick={() => setCurrentView('create-event')} className="active">Crear Evento</a>
+            </nav>
+            <ConnectButton />
+          </div>
+        </header>
+
+        <main className="main">
+          <div className="container">
+            {!isConnected ? (
+              <section className="create-event-intro">
+                <div className="connect-prompt">
+                  <h2>🔐 Conecta tu Wallet</h2>
+                  <p>Para crear eventos con tickets NFT necesitas conectar tu wallet de Ethereum</p>
+                  <ConnectButton />
+                </div>
+              </section>
+            ) : (
+              <div className="create-event-container">
+                <div className="create-event-content">
+                  <div className="create-event-header">
+                    <div className="back-nav">
+                      <button onClick={() => setCurrentView('home')} className="back-btn">
+                        ← Volver al Inicio
+                      </button>
+                    </div>
+                    <h2>🎟️ Crear Nuevo Evento</h2>
+                    <p>Organiza tu evento y vende tickets NFT de forma segura</p>
+                  </div>
+                  
+                  {/* Indicador de progreso */}
+                  <div className="progress-indicator">
+                    <div className={`step ${createEventStep >= 1 ? 'active' : ''} ${createEventStep === 1 ? 'current' : ''}`}>
+                      <span className="step-number">1</span>
+                      <label>Información Básica</label>
+                    </div>
+                    <div className={`step ${createEventStep >= 2 ? 'active' : ''} ${createEventStep === 2 ? 'current' : ''}`}>
+                      <span className="step-number">2</span>
+                      <label>Lugar y Fecha</label>
+                    </div>
+                    <div className={`step ${createEventStep >= 3 ? 'active' : ''} ${createEventStep === 3 ? 'current' : ''}`}>
+                      <span className="step-number">3</span>
+                      <label>Configurar Tickets</label>
+                    </div>
+                    <div className={`step ${createEventStep >= 4 ? 'active' : ''} ${createEventStep === 4 ? 'current' : ''}`}>
+                      <span className="step-number">4</span>
+                      <label>Publicar Evento</label>
+                    </div>
+                  </div>
+
+                  {/* Paso 1: Información Básica */}
+                  {createEventStep === 1 && (
+                    <div className="form-step">
+                      <h3>📋 Información Básica del Evento</h3>
+                      
+                      <div className="form-grid">
+                        <div className="form-group">
+                          <label>Título del Evento *</label>
+                          <input
+                            type="text"
+                            value={eventForm.title}
+                            onChange={(e) => updateEventForm('title', e.target.value)}
+                            placeholder="Ej: Concierto de Bad Bunny - World Hottest Tour"
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label>Artista/Performer *</label>
+                          <input
+                            type="text"
+                            value={eventForm.artist}
+                            onChange={(e) => updateEventForm('artist', e.target.value)}
+                            placeholder="Ej: Bad Bunny"
+                          />
+                        </div>
+
+                        <div className="form-group full-width">
+                          <label>Descripción del Evento</label>
+                          <textarea
+                            value={eventForm.description}
+                            onChange={(e) => updateEventForm('description', e.target.value)}
+                            placeholder="Describe tu evento: qué pueden esperar los asistentes, artistas invitados, etc."
+                            rows="4"
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label>Tipo de Evento *</label>
+                          <select
+                            value={eventForm.eventType}
+                            onChange={(e) => updateEventForm('eventType', e.target.value)}
+                          >
+                            <option value="concert">Concierto</option>
+                            <option value="festival">Festival</option>
+                            <option value="theater">Teatro</option>
+                            <option value="sports">Deportes</option>
+                            <option value="conference">Conferencia</option>
+                            <option value="other">Otro</option>
+                          </select>
+                        </div>
+
+                        <div className="form-group">
+                          <label>Categoría *</label>
+                          <select
+                            value={eventForm.category}
+                            onChange={(e) => updateEventForm('category', e.target.value)}
+                          >
+                            <option value="">Seleccionar categoría</option>
+                            <option value="Música">Música</option>
+                            <option value="Teatro">Teatro</option>
+                            <option value="Deportes">Deportes</option>
+                            <option value="Entretenimiento">Entretenimiento</option>
+                            <option value="Familia">Familia</option>
+                            <option value="Cultura">Cultura</option>
+                          </select>
+                        </div>
+
+                        <div className="form-group">
+                          <label>Género Musical</label>
+                          <input
+                            type="text"
+                            value={eventForm.genre}
+                            onChange={(e) => updateEventForm('genre', e.target.value)}
+                            placeholder="Ej: Reggaeton, Rock, Pop, etc."
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label>Restricción de Edad</label>
+                          <select
+                            value={eventForm.ageRestriction}
+                            onChange={(e) => updateEventForm('ageRestriction', e.target.value)}
+                          >
+                            <option value="">Sin restricción</option>
+                            <option value="13+">13+ años</option>
+                            <option value="16+">16+ años</option>
+                            <option value="18+">18+ años</option>
+                            <option value="21+">21+ años</option>
+                          </select>
+                        </div>
+
+                        <div className="form-group full-width">
+                          <label>Imagen de Portada (URL)</label>
+                          <input
+                            type="url"
+                            value={eventForm.coverImage}
+                            onChange={(e) => updateEventForm('coverImage', e.target.value)}
+                            placeholder="https://ejemplo.com/imagen.jpg"
+                          />
+                          {eventForm.coverImage && (
+                            <div className="image-preview">
+                              <OptimizedImage src={eventForm.coverImage} alt="Vista previa" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="form-actions">
+                        <button onClick={() => setCurrentView('events')} className="btn-secondary">
+                          Cancelar
+                        </button>
+                        <button 
+                          onClick={nextCreateStep} 
+                          className="btn-primary"
+                          disabled={!eventForm.title || !eventForm.artist || !eventForm.category}
+                        >
+                          Siguiente: Lugar y Fecha →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Paso 2: Lugar y Fecha */}
+                  {createEventStep === 2 && (
+                    <div className="form-step">
+                      <h3>📍 Lugar y Fecha del Evento</h3>
+                      
+                      <div className="form-grid">
+                        <div className="form-group">
+                          <label>Nombre del Venue *</label>
+                          <input
+                            type="text"
+                            value={eventForm.venue}
+                            onChange={(e) => updateEventForm('venue', e.target.value)}
+                            placeholder="Ej: Estadio River Plate"
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label>Capacidad Máxima *</label>
+                          <input
+                            type="number"
+                            value={eventForm.maxCapacity}
+                            onChange={(e) => updateEventForm('maxCapacity', e.target.value)}
+                            placeholder="Ej: 65000"
+                          />
+                        </div>
+
+                        <div className="form-group full-width">
+                          <label>Dirección Completa *</label>
+                          <input
+                            type="text"
+                            value={eventForm.address}
+                            onChange={(e) => updateEventForm('address', e.target.value)}
+                            placeholder="Ej: Av. Presidente Figueroa Alcorta 7597"
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label>Ciudad *</label>
+                          <input
+                            type="text"
+                            value={eventForm.city}
+                            onChange={(e) => updateEventForm('city', e.target.value)}
+                            placeholder="Ej: Buenos Aires"
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label>País *</label>
+                          <select
+                            value={eventForm.country}
+                            onChange={(e) => updateEventForm('country', e.target.value)}
+                          >
+                            <option value="Argentina">Argentina</option>
+                            <option value="Chile">Chile</option>
+                            <option value="Uruguay">Uruguay</option>
+                            <option value="Paraguay">Paraguay</option>
+                            <option value="Brasil">Brasil</option>
+                            <option value="Otro">Otro</option>
+                          </select>
+                        </div>
+
+                        <div className="form-group">
+                          <label>Fecha del Evento *</label>
+                          <input
+                            type="date"
+                            value={eventForm.date}
+                            onChange={(e) => updateEventForm('date', e.target.value)}
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label>Hora de Inicio *</label>
+                          <input
+                            type="time"
+                            value={eventForm.time}
+                            onChange={(e) => updateEventForm('time', e.target.value)}
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label>Apertura de Puertas</label>
+                          <input
+                            type="time"
+                            value={eventForm.doors}
+                            onChange={(e) => updateEventForm('doors', e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="form-actions">
+                        <button onClick={prevCreateStep} className="btn-secondary">
+                          ← Volver
+                        </button>
+                        <button 
+                          onClick={nextCreateStep} 
+                          className="btn-primary"
+                          disabled={!eventForm.venue || !eventForm.maxCapacity || !eventForm.address || !eventForm.city || !eventForm.date || !eventForm.time}
+                        >
+                          Siguiente: Configurar Tickets →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Paso 3: Configurar Tickets */}
+                  {createEventStep === 3 && (
+                    <div className="form-step">
+                      <h3>🎫 Configuración de Tickets</h3>
+                      
+                      <div className="tickets-summary">
+                        <div className="summary-card">
+                          <h4>📊 Resumen</h4>
+                          <div className="summary-stats">
+                            <div className="stat">
+                              <span className="stat-label">Total Tickets:</span>
+                              <span className="stat-value">{getTotalTicketsToSell().toLocaleString()}</span>
+                            </div>
+                            <div className="stat">
+                              <span className="stat-label">Ingresos Estimados:</span>
+                              <span className="stat-value">{getEstimatedRevenue().toFixed(3)} ETH</span>
+                            </div>
+                            <div className="stat">
+                              <span className="stat-label">Tipos de Ticket:</span>
+                              <span className="stat-value">{eventForm.ticketTypes.length}</span>
+                            </div>
+                            <div className="stat">
+                              <span className="stat-label">% de Capacidad:</span>
+                              <span className="stat-value">
+                                {eventForm.maxCapacity ? Math.round((getTotalTicketsToSell() / parseInt(eventForm.maxCapacity)) * 100) : 0}%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="ticket-types">
+                        {eventForm.ticketTypes.map((ticket, index) => (
+                          <div key={ticket.id} className="ticket-type-card">
+                            <div className="ticket-type-header">
+                              <h4>🎫 Ticket Tipo {index + 1}</h4>
+                              {eventForm.ticketTypes.length > 1 && (
+                                <button 
+                                  onClick={() => removeTicketType(ticket.id)}
+                                  className="btn-remove"
+                                >
+                                  ❌ Eliminar
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="ticket-form-grid">
+                              <div className="form-group">
+                                <label>Nombre del Ticket *</label>
+                                <input
+                                  type="text"
+                                  value={ticket.name}
+                                  onChange={(e) => updateTicketType(ticket.id, 'name', e.target.value)}
+                                  placeholder="Ej: General, VIP, Platinum"
+                                />
+                              </div>
+
+                              <div className="form-group">
+                                <label>Precio (ETH) *</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={ticket.price}
+                                  onChange={(e) => updateTicketType(ticket.id, 'price', e.target.value)}
+                                  placeholder="0.00"
+                                />
+                              </div>
+
+                              <div className="form-group">
+                                <label>Cantidad Disponible *</label>
+                                <input
+                                  type="number"
+                                  value={ticket.quantity}
+                                  onChange={(e) => updateTicketType(ticket.id, 'quantity', e.target.value)}
+                                  placeholder="Ej: 1000"
+                                />
+                              </div>
+
+                              <div className="form-group">
+                                <label>Máximo por Persona</label>
+                                <select
+                                  value={ticket.maxPerPerson}
+                                  onChange={(e) => updateTicketType(ticket.id, 'maxPerPerson', parseInt(e.target.value))}
+                                >
+                                  <option value={1}>1 ticket</option>
+                                  <option value={2}>2 tickets</option>
+                                  <option value={4}>4 tickets</option>
+                                  <option value={6}>6 tickets</option>
+                                  <option value={8}>8 tickets</option>
+                                  <option value={10}>10 tickets</option>
+                                </select>
+                              </div>
+
+                              <div className="form-group full-width">
+                                <label>Descripción/Beneficios</label>
+                                <textarea
+                                  value={ticket.description}
+                                  onChange={(e) => updateTicketType(ticket.id, 'description', e.target.value)}
+                                  placeholder="Describe qué incluye este tipo de ticket..."
+                                  rows="2"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="ticket-preview">
+                              <div className="ticket-stats">
+                                <span>💰 Ingresos: {((parseInt(ticket.quantity) || 0) * (parseFloat(ticket.price) || 0)).toFixed(3)} ETH</span>
+                                <span>📊 % del Total: {getTotalTicketsToSell() > 0 ? Math.round(((parseInt(ticket.quantity) || 0) / getTotalTicketsToSell()) * 100) : 0}%</span>
+                                <span>🎫 {ticket.price} ETH/ticket</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+
+                        <button onClick={addNewTicketType} className="btn-add-ticket">
+                          + Agregar Otro Tipo de Ticket
+                        </button>
+                      </div>
+
+                      <div className="form-actions">
+                        <button onClick={prevCreateStep} className="btn-secondary">
+                          ← Volver
+                        </button>
+                        <button 
+                          onClick={nextCreateStep} 
+                          className="btn-primary"
+                          disabled={!eventForm.ticketTypes.some(t => t.name && t.price && t.quantity)}
+                        >
+                          Siguiente: Publicar Evento →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Paso 4: Publicar Evento */}
+                  {createEventStep === 4 && (
+                    <div className="form-step">
+                      <h3>🚀 Términos y Publicación</h3>
+                      
+                      <div className="final-review">
+                        <div className="event-preview-card">
+                          <h4>👁️ Vista Previa del Evento</h4>
+                          <div className="preview-content">
+                            <div className="preview-image">
+                              {eventForm.coverImage ? (
+                                <OptimizedImage src={eventForm.coverImage} alt="Preview" />
+                              ) : (
+                                <div className="placeholder-image">📸 Sin imagen</div>
+                              )}
+                            </div>
+                            <div className="preview-info">
+                              <h5>{eventForm.title || 'Título del evento'}</h5>
+                              <p><strong>🎤 Artista:</strong> {eventForm.artist || 'Sin especificar'}</p>
+                              <p><strong>📍 Lugar:</strong> {eventForm.venue}, {eventForm.city}</p>
+                              <p><strong>📅 Fecha:</strong> {eventForm.date} a las {eventForm.time}</p>
+                              <p><strong>👥 Capacidad:</strong> {parseInt(eventForm.maxCapacity).toLocaleString()} personas</p>
+                              <p><strong>🏷️ Categoría:</strong> {eventForm.category}</p>
+                              <div className="preview-tickets">
+                                <h6>🎫 Tickets Disponibles:</h6>
+                                {eventForm.ticketTypes.map(ticket => (
+                                  <div key={ticket.id} className="preview-ticket">
+                                    <strong>{ticket.name}</strong> - {ticket.price} ETH ({parseInt(ticket.quantity).toLocaleString()} disponibles)
+                                  </div>
+                                ))}
+                                <div className="preview-totals">
+                                  <div><strong>Total tickets:</strong> {getTotalTicketsToSell().toLocaleString()}</div>
+                                  <div><strong>Ingresos estimados:</strong> {getEstimatedRevenue().toFixed(3)} ETH</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="terms-section">
+                          <h4>📋 Políticas del Evento</h4>
+                          
+                          <div className="form-grid">
+                            <div className="form-group">
+                              <label>Política de Reembolso</label>
+                              <select
+                                value={eventForm.refundPolicy}
+                                onChange={(e) => updateEventForm('refundPolicy', e.target.value)}
+                              >
+                                <option value="no-refund">Sin reembolso</option>
+                                <option value="partial-refund">Reembolso parcial (hasta 7 días antes)</option>
+                                <option value="full-refund">Reembolso completo (hasta 24 horas antes)</option>
+                              </select>
+                            </div>
+
+                            <div className="form-group checkbox-group">
+                              <label>
+                                <input
+                                  type="checkbox"
+                                  checked={eventForm.transferable}
+                                  onChange={(e) => updateEventForm('transferable', e.target.checked)}
+                                />
+                                Tickets transferibles
+                              </label>
+                            </div>
+
+                            <div className="form-group checkbox-group">
+                              <label>
+                                <input
+                                  type="checkbox"
+                                  checked={eventForm.resaleAllowed}
+                                  onChange={(e) => updateEventForm('resaleAllowed', e.target.checked)}
+                                />
+                                Permitir reventa
+                              </label>
+                            </div>
+
+                            <div className="form-group full-width">
+                              <label>Términos y Condiciones Adicionales</label>
+                              <textarea
+                                value={eventForm.terms}
+                                onChange={(e) => updateEventForm('terms', e.target.value)}
+                                placeholder="Agrega términos específicos para tu evento..."
+                                rows="4"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="blockchain-info">
+                          <h4>⛓️ Información Blockchain</h4>
+                          <div className="blockchain-details">
+                            <div className="blockchain-item">
+                              <span className="label">Red:</span>
+                              <span className="value">Base Network (L2)</span>
+                            </div>
+                            <div className="blockchain-item">
+                              <span className="label">Testnet:</span>
+                              <span className="value">Base Sepolia</span>
+                            </div>
+                            <div className="blockchain-item">
+                              <span className="label">Moneda:</span>
+                              <span className="value">ETH en Base</span>
+                            </div>
+                            <div className="blockchain-item">
+                              <span className="label">Estándar:</span>
+                              <span className="value">ERC-721 (NFT)</span>
+                            </div>
+                            <div className="blockchain-item">
+                              <span className="label">Gas Estimado:</span>
+                              <span className="value">~$0.01-0.50 USD</span>
+                            </div>
+                            <div className="blockchain-item">
+                              <span className="label">Tiempo de Confirmación:</span>
+                              <span className="value">1-2 minutos</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="form-actions">
+                        <button onClick={prevCreateStep} className="btn-secondary">
+                          ← Volver
+                        </button>
+                        <button 
+                          onClick={() => {
+                            alert('🎉 ¡Evento publicado exitosamente! Los tickets NFT están siendo minteados en la blockchain.')
+                            setCurrentView('events')
+                            setCreateEventStep(1)
+                            // Reset form
+                            setEventForm({
+                              title: '', artist: '', description: '', category: '', genre: '',
+                              venue: '', address: '', city: '', country: 'Argentina', date: '', time: '', doors: '',
+                              ageRestriction: '', maxCapacity: '', eventType: 'concert',
+                              coverImage: '', additionalImages: [],
+                              ticketTypes: [{
+                                id: 1, name: 'General', description: 'Acceso general al evento',
+                                price: '', quantity: '', maxPerPerson: 4, isActive: true
+                              }],
+                              refundPolicy: 'no-refund', transferable: true, resaleAllowed: true, terms: ''
+                            })
+                          }}
+                          className="btn-publish"
+                        >
+                          🚀 Publicar Evento y Mintear NFTs
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
+
+        <footer className="footer">
+          <div className="container">
+            <p>&copy; 2025 TicketSafer - Powered by Blockchain</p>
+          </div>
+        </footer>
+      </div>
+    )
+  }
+
+  // Events/Search Results View
+  if (currentView === 'events' || currentView === 'search-results') {
+    return (
+      <div className="ticket-safer">
+        {/* Elementos Decorativos Metálicos */}
+        <div className="wireframe-grid"></div>
+        <div className="metallic-orb metallic-orb-1"></div>
+        <div className="metallic-orb metallic-orb-2"></div>
+        <div className="metallic-orb metallic-orb-3"></div>
+        <div className="metallic-orb metallic-orb-4"></div>
+        <div className="geometric-shape geometric-triangle"></div>
+        <div className="geometric-shape geometric-diamond"></div>
+        <div className="geometric-shape geometric-sphere"></div>
+        <div className="geometric-shape geometric-cube"></div>
+        
+        <header className="header">
+          <div className="container">
+            <h1 className="logo" onClick={() => setCurrentView('home')}>🎫 TicketSafer</h1>
+            <nav className="nav">
+              <div className="nav-dropdown">
+                              <a 
+                href="#" 
+                onClick={(e) => {
+                  e.preventDefault()
+                  setCurrentView('events')
+                  setActiveFilters(prev => ({ ...prev, favorites: false }))
+                }}
+                className={currentView === 'events' ? 'active' : ''}
+              >
+                Eventos
+                {favorites.length > 0 && <span className="dropdown-arrow">▼</span>}
+              </a>
+                {favorites.length > 0 && (
+                  <div className="dropdown-menu">
+                    <a 
+                      href="#favoritos" 
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setCurrentView('events')
+                        setActiveFilters(prev => ({ ...prev, favorites: true }))
+                      }}
+                      className={activeFilters.favorites ? 'active' : ''}
+                    >
+                      ❤️ Favoritos ({favorites.length})
+                    </a>
+                  </div>
+                )}
+              </div>
+              <a 
+                href="#" 
+                onClick={(e) => {
+                  e.preventDefault()
+                  setCurrentView('my-tickets')
+                }}
+                className={currentView === 'my-tickets' ? 'active' : ''}
+              >
+                Mis Tickets
+              </a>
+              <a 
+                href="#" 
+                onClick={(e) => {
+                  e.preventDefault()
+                  setCurrentView('create-event')
+                }}
+                className={currentView === 'create-event' ? 'active' : ''}
+              >
+                Crear Evento
+              </a>
+            </nav>
+            <ConnectButton />
+          </div>
+        </header>
+
+        {/* Advanced Search Bar */}
+        <section className="search-section">
+          <div className="container">
+            <form className="search-form" onSubmit={handleSearchSubmit}>
+              <div className="search-input-container">
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Buscar eventos, artistas, venues..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
+                    setShowSearchSuggestions(true)
+                  }}
+                  onFocus={() => setShowSearchSuggestions(true)}
+                />
+                <button type="submit" className="search-btn">
+                  🔍
+                </button>
+                
+                {showSearchSuggestions && searchQuery && (
+                  <div className="search-suggestions">
+                    <div className="suggestions-header">
+                      <span>Sugerencias</span>
+                      <span className="suggestions-count">{getSearchSuggestions().length} resultados</span>
+                    </div>
+                    {getSearchSuggestions().map(event => (
+                      <div 
+                        key={event.id} 
+                        className="suggestion-item"
+                        onClick={() => handleSuggestionClick(event)}
+                      >
+                        <div className="suggestion-content">
+                          <span className="suggestion-title">{event.title}</span>
+                          <span className="suggestion-details">{event.artist} • {event.venue}</span>
+                        </div>
+                        <span className="suggestion-price">{event.price} ETH</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </form>
+          </div>
+        </section>
+
+        {/* Filters Bar */}
+        <section className="filters-bar">
+          <div className="container">
+            <div className="filters-header">
+              <div className="filters-left">
+                <button 
+                  className={`filter-toggle ${showFilters ? 'active' : ''}`}
+                  onClick={() => setShowFilters(!showFilters)}
+                >
+                  🎛️ Filtros {getActiveFilterCount() > 0 && `(${getActiveFilterCount()})`}
+                </button>
+                
+                <div className="active-filters">
+                  {activeFilters.category.map(cat => (
+                    <span key={cat} className="filter-pill">
+                      {cat} <button onClick={() => handleFilterChange('category', cat)}>×</button>
+                    </span>
+                  ))}
+                  {activeFilters.genre.map(genre => (
+                    <span key={genre} className="filter-pill">
+                      {genre} <button onClick={() => handleFilterChange('genre', genre)}>×</button>
+                    </span>
+                  ))}
+                  {activeFilters.location && (
+                    <span className="filter-pill">
+                      📍 {activeFilters.location} <button onClick={() => handleFilterChange('location', '')}>×</button>
+                    </span>
+                  )}
+                  {activeFilters.availability !== 'all' && (
+                    <span className="filter-pill">
+                      🎫 {activeFilters.availability === 'high' ? 'Alta disponibilidad' : 
+                          activeFilters.availability === 'medium' ? 'Media disponibilidad' : 'Poca disponibilidad'} 
+                      <button onClick={() => handleFilterChange('availability', 'all')}>×</button>
+                    </span>
+                  )}
+                  {activeFilters.timeOfDay !== 'all' && (
+                    <span className="filter-pill">
+                      🕐 {activeFilters.timeOfDay === 'morning' ? 'Mañana' :
+                          activeFilters.timeOfDay === 'afternoon' ? 'Tarde' :
+                          activeFilters.timeOfDay === 'evening' ? 'Noche' : 'Madrugada'}
+                      <button onClick={() => handleFilterChange('timeOfDay', 'all')}>×</button>
+                    </span>
+                  )}
+                  {activeFilters.venueType !== 'all' && (
+                    <span className="filter-pill">
+                      🏟️ {activeFilters.venueType === 'stadium' ? 'Estadio' :
+                           activeFilters.venueType === 'arena' ? 'Arena' :
+                           activeFilters.venueType === 'theater' ? 'Teatro' :
+                           activeFilters.venueType === 'club' ? 'Club' : 'Al aire libre'}
+                      <button onClick={() => handleFilterChange('venueType', 'all')}>×</button>
+                    </span>
+                  )}
+                  {activeFilters.favorites && (
+                    <span className="filter-pill">
+                      ❤️ Mis Favoritos
+                      <button onClick={() => handleFilterChange('favorites', false)}>×</button>
+                    </span>
+                  )}
+                  {getActiveFilterCount() > 0 && (
+                    <>
+                      <button className="save-search" onClick={() => setShowSaveSearch(true)}>
+                        💾 Guardar búsqueda
+                      </button>
+                      <button className="clear-filters" onClick={clearAllFilters}>
+                        Limpiar todo
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              <div className="filters-right">
+                <div className="view-controls">
+                  <button 
+                    className={viewMode === 'grid' ? 'active' : ''}
+                    onClick={() => setViewMode('grid')}
+                  >
+                    ⊞
+                  </button>
+                  <button 
+                    className={viewMode === 'list' ? 'active' : ''}
+                    onClick={() => setViewMode('list')}
+                  >
+                    ☰
+                  </button>
+                </div>
+                
+                <select 
+                  className="sort-select"
+                  value={activeFilters.sortBy}
+                  onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                >
+                  <option value="date">Fecha</option>
+                  <option value="price-low">Precio: menor a mayor</option>
+                  <option value="price-high">Precio: mayor a menor</option>
+                  <option value="popularity">Popularidad</option>
+                  <option value="availability">Disponibilidad</option>
+                  <option value="distance">Distancia</option>
+                  <option value="alphabetical">A-Z</option>
+                </select>
+                
+                <span className="results-count">
+                  {filteredEvents.length} evento{filteredEvents.length !== 1 ? 's' : ''} encontrado{filteredEvents.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+            </div>
+
+            {showFilters && (
+              <div className="filters-panel">
+                {/* Saved Searches */}
+                <div className="saved-searches">
+                  <h4>⭐ Búsquedas Guardadas</h4>
+                  <div className="saved-search-buttons">
+                    {savedSearches.map(search => (
+                      <button 
+                        key={search.id}
+                        className="saved-search-btn"
+                        onClick={() => {
+                          setActiveFilters(prev => ({ ...prev, ...search.filters }))
+                        }}
+                      >
+                        {search.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Quick Filters */}
+                <div className="quick-filters">
+                  <h4>🚀 Filtros Rápidos</h4>
+                  <div className="quick-filter-buttons">
+                    <button 
+                      className={`quick-filter-btn ${activeFilters.priceRange[1] <= 0.02 ? 'active' : ''}`}
+                      onClick={() => handleFilterChange('priceRange', [0, 0.02])}
+                    >
+                      💰 Económicos (&lt;0.02 ETH)
+                    </button>
+                    <button 
+                      className={`quick-filter-btn ${activeFilters.dateRange === 'this-week' ? 'active' : ''}`}
+                      onClick={() => handleFilterChange('dateRange', 'this-week')}
+                    >
+                      📅 Esta Semana
+                    </button>
+                    <button 
+                      className={`quick-filter-btn ${activeFilters.availability === 'high' ? 'active' : ''}`}
+                      onClick={() => handleFilterChange('availability', 'high')}
+                    >
+                      🎫 Alta Disponibilidad
+                    </button>
+                    <button 
+                      className={`quick-filter-btn ${activeFilters.timeOfDay === 'evening' ? 'active' : ''}`}
+                      onClick={() => handleFilterChange('timeOfDay', 'evening')}
+                    >
+                      🌙 Eventos Nocturnos
+                    </button>
+                    <button 
+                      className={`quick-filter-btn ${activeFilters.category.includes('Festival') ? 'active' : ''}`}
+                      onClick={() => handleFilterChange('category', 'Festival')}
+                    >
+                      🎪 Festivales
+                    </button>
+                    <button 
+                      className={`quick-filter-btn ${activeFilters.venueType === 'outdoor' ? 'active' : ''}`}
+                      onClick={() => handleFilterChange('venueType', 'outdoor')}
+                    >
+                      🌳 Al Aire Libre
+                    </button>
+                    <button 
+                      className={`quick-filter-btn ${activeFilters.favorites ? 'active' : ''}`}
+                      onClick={() => handleFilterChange('favorites', true)}
+                    >
+                      ❤️ Mis Favoritos ({favorites.length})
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="filters-grid">
+                  <div className="filter-group">
+                    <h4>Categoría</h4>
+                    {['Concierto', 'Festival', 'Show', 'Teatro', 'Deportes'].map(category => (
+                      <label key={category} className="filter-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={activeFilters.category.includes(category)}
+                          onChange={() => handleFilterChange('category', category)}
+                        />
+                        <span className="checkmark"></span>
+                        {category}
+                      </label>
+                    ))}
+                  </div>
+                  
+                  <div className="filter-group">
+                    <h4>Género Musical</h4>
+                    {['Rock/Pop', 'Electrónica', 'Tango', 'Pop/Folk', 'Múltiple', 'Jazz', 'Musical', 'Fútbol'].map(genre => (
+                      <label key={genre} className="filter-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={activeFilters.genre.includes(genre)}
+                          onChange={() => handleFilterChange('genre', genre)}
+                        />
+                        <span className="checkmark"></span>
+                        {genre}
+                      </label>
+                    ))}
+                  </div>
+                  
+                  <div className="filter-group">
+                    <h4>Rango de Precio (ETH)</h4>
+                    <div className="price-range">
+                      <input
+                        type="range"
+                        min="0"
+                        max="0.25"
+                        step="0.001"
+                        value={activeFilters.priceRange[0]}
+                        onChange={(e) => handleFilterChange('priceRange', [parseFloat(e.target.value), activeFilters.priceRange[1]])}
+                        className="range-slider"
+                      />
+                      <input
+                        type="range"
+                        min="0"
+                        max="0.25"
+                        step="0.001"
+                        value={activeFilters.priceRange[1]}
+                        onChange={(e) => handleFilterChange('priceRange', [activeFilters.priceRange[0], parseFloat(e.target.value)])}
+                        className="range-slider"
+                      />
+                      <div className="price-display">
+                        {activeFilters.priceRange[0]} - {activeFilters.priceRange[1]} ETH
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="filter-group">
+                    <h4>Ubicación</h4>
+                    <input
+                      type="text"
+                      className="location-input"
+                      placeholder="Ciudad o país..."
+                      value={activeFilters.location}
+                      onChange={(e) => handleFilterChange('location', e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="filter-group">
+                    <h4>Fecha</h4>
+                    <select 
+                      value={activeFilters.dateRange}
+                      onChange={(e) => handleFilterChange('dateRange', e.target.value)}
+                      className="date-select"
+                    >
+                      <option value="">Cualquier fecha</option>
+                      <option value="today">Hoy</option>
+                      <option value="tomorrow">Mañana</option>
+                      <option value="this-week">Esta semana</option>
+                      <option value="this-month">Este mes</option>
+                      <option value="next-month">Próximo mes</option>
+                    </select>
+                  </div>
+                  
+                  <div className="filter-group">
+                    <h4>Disponibilidad</h4>
+                    <select 
+                      value={activeFilters.availability}
+                      onChange={(e) => handleFilterChange('availability', e.target.value)}
+                      className="date-select"
+                    >
+                      <option value="all">Cualquier disponibilidad</option>
+                      <option value="high">Alta disponibilidad (1000+)</option>
+                      <option value="medium">Media disponibilidad (100-999)</option>
+                      <option value="low">Poca disponibilidad (&lt;100)</option>
+                    </select>
+                  </div>
+                  
+                  <div className="filter-group">
+                    <h4>Horario del Evento</h4>
+                    <select 
+                      value={activeFilters.timeOfDay}
+                      onChange={(e) => handleFilterChange('timeOfDay', e.target.value)}
+                      className="date-select"
+                    >
+                      <option value="all">Cualquier horario</option>
+                      <option value="morning">Mañana (06:00 - 12:00)</option>
+                      <option value="afternoon">Tarde (12:00 - 18:00)</option>
+                      <option value="evening">Noche (18:00 - 22:00)</option>
+                      <option value="night">Madrugada (22:00 - 06:00)</option>
+                    </select>
+                  </div>
+                  
+                  <div className="filter-group">
+                    <h4>Tipo de Venue</h4>
+                    <select 
+                      value={activeFilters.venueType}
+                      onChange={(e) => handleFilterChange('venueType', e.target.value)}
+                      className="date-select"
+                    >
+                      <option value="all">Cualquier venue</option>
+                      <option value="stadium">🏟️ Estadio</option>
+                      <option value="arena">🏢 Arena/Coliseo</option>
+                      <option value="theater">🎭 Teatro</option>
+                      <option value="club">🍻 Club/Bar</option>
+                      <option value="outdoor">🌳 Al aire libre</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Events Results */}
+        <section className="events-results">
+          <div className="container">
+            {filteredEvents.length === 0 ? (
+              <div className="no-results">
+                <div className="no-results-icon">🎭</div>
+                <h3>No encontramos eventos</h3>
+                <p>Prueba ajustando tus filtros o busca términos diferentes</p>
+                <button className="btn glow-pulse" onClick={clearAllFilters}>
+                  Limpiar filtros
+                </button>
+              </div>
+            ) : (
+              <div className={`events-grid ${viewMode}`}>
+                {filteredEvents.map(event => (
+                  <div key={event.id} className="event-card">
+                    <div className="event-image">
+                      <OptimizedImage src={event.image} alt={event.title} />
+                      <div className="event-overlay">
+                        <span className="event-category">{event.category}</span>
+                        <span className="event-available">{event.available.toLocaleString()} disponibles</span>
+                      </div>
+                    </div>
+                    <div className="event-content">
+                      <div className="event-header">
+                        <h3 className="event-title">{event.title}</h3>
+                        <div className="event-price">
+                          <span className="price">{event.price} ETH</span>
+                          <span className="currency">Base Network</span>
+                        </div>
+                      </div>
+                      <div className="event-details">
+                        <p className="event-artist">🎤 {event.artist}</p>
+                        <p className="event-venue">📍 {event.venue}, {event.city}</p>
+                        <p className="event-datetime">🗓️ {new Date(event.date).toLocaleDateString('es-ES')} • {event.time}</p>
+                        <p className="event-genre">🎵 {event.genre}</p>
+                      </div>
+                      <div className="event-tags">
+                        {event.tags.map(tag => (
+                          <span key={tag} className="tag">#{tag}</span>
+                        ))}
+                      </div>
+                      <div className="event-actions">
+                        <button 
+                          className="btn-primary glow-pulse"
+                          onClick={() => openEventModal(event)}
+                        >
+                          Comprar Ticket
+                        </button>
+                        <button 
+                          className={`btn-secondary ${isFavorite(event.id) ? 'favorite-active' : ''}`}
+                          onClick={() => toggleFavorite(event.id)}
+                          title={isFavorite(event.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+                        >
+                          {isFavorite(event.id) ? '❤️' : '♡'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <footer className="footer">
+          <div className="container">
+            <p>&copy; 2025 TicketSafer - Powered by Blockchain</p>
+          </div>
+        </footer>
+
+        {/* Event Detail Modal */}
+        {showEventModal && selectedEvent && (
+          <div className="modal-overlay" onClick={closeEventModal}>
+            <div className="event-modal" onClick={(e) => e.stopPropagation()}>
+              <button className="modal-close" onClick={closeEventModal}>×</button>
+              
+              <div className="modal-content">
+                <div className="modal-header">
+                  <div className="modal-image">
+                    <OptimizedImage src={selectedEvent.image} alt={selectedEvent.title} />
+                    <div className="modal-image-overlay">
+                      <span className="modal-category">{selectedEvent.category}</span>
+                      <span className="modal-available">{selectedEvent.available.toLocaleString()} disponibles</span>
+                    </div>
+                  </div>
+                  
+                  <div className="modal-info">
+                    <h2 className="modal-title">{selectedEvent.title}</h2>
+                    <div className="modal-price">
+                      <span className="price-label">Desde</span>
+                      <span className="price-amount">{selectedEvent.price} ETH</span>
+                      <span className="price-currency">Base Network</span>
+                    </div>
+                    
+                    <div className="modal-details">
+                      <div className="detail-item">
+                        <span className="detail-icon">🎤</span>
+                        <div className="detail-text">
+                          <span className="detail-label">Artista</span>
+                          <span className="detail-value">{selectedEvent.artist}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="detail-item">
+                        <span className="detail-icon">📍</span>
+                        <div className="detail-text">
+                          <span className="detail-label">Venue</span>
+                          <span className="detail-value">{selectedEvent.venue}, {selectedEvent.city}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="detail-item">
+                        <span className="detail-icon">🗓️</span>
+                        <div className="detail-text">
+                          <span className="detail-label">Fecha y Hora</span>
+                          <span className="detail-value">
+                            {new Date(selectedEvent.date).toLocaleDateString('es-ES', { 
+                              weekday: 'long', 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            })} • {selectedEvent.time}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="detail-item">
+                        <span className="detail-icon">🎵</span>
+                        <div className="detail-text">
+                          <span className="detail-label">Género</span>
+                          <span className="detail-value">{selectedEvent.genre}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="modal-description">
+                      <h4>Descripción del Evento</h4>
+                      <p>{selectedEvent.description}</p>
+                    </div>
+                    
+                    <div className="modal-tags">
+                      {selectedEvent.tags.map(tag => (
+                        <span key={tag} className="modal-tag">#{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="modal-ticket-selection">
+                  <h3>Selecciona tu Ticket</h3>
+                  
+                  <div className="ticket-options">
+                    <div className="ticket-option">
+                      <div className="ticket-info">
+                        <span className="ticket-type">General</span>
+                        <span className="ticket-description">Acceso general al evento</span>
+                      </div>
+                      <div className="ticket-price">
+                                                    <span className="ticket-amount">{selectedEvent.price} ETH</span>
+                        <button 
+                          className="ticket-select-btn"
+                          onClick={() => openCheckout(selectedEvent, 'general')}
+                        >
+                          Seleccionar
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="ticket-option premium">
+                      <div className="ticket-info">
+                        <span className="ticket-type">VIP ⭐</span>
+                        <span className="ticket-description">Acceso VIP + Meet & Greet</span>
+                      </div>
+                      <div className="ticket-price">
+                                                    <span className="ticket-amount">{(selectedEvent.price * 2.5).toFixed(3)} ETH</span>
+                        <button 
+                          className="ticket-select-btn premium"
+                          onClick={() => openCheckout(selectedEvent, 'vip')}
+                        >
+                          Seleccionar
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="ticket-option exclusive">
+                      <div className="ticket-info">
+                        <span className="ticket-type">Platinum 💎</span>
+                        <span className="ticket-description">Experiencia completa + Backstage</span>
+                      </div>
+                      <div className="ticket-price">
+                                                    <span className="ticket-amount">{(selectedEvent.price * 4).toFixed(3)} ETH</span>
+                        <button 
+                          className="ticket-select-btn exclusive"
+                          onClick={() => openCheckout(selectedEvent, 'platinum')}
+                        >
+                          Seleccionar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="modal-actions">
+                  <div className="modal-info-section">
+                    <div className="availability-status">
+                      <span className="status-icon">🎫</span>
+                      <span>
+                        {selectedEvent.available > 1000 ? 'Alta disponibilidad' : 
+                         selectedEvent.available > 100 ? 'Disponibilidad media' : 'Últimos tickets'}
+                      </span>
+                    </div>
+                    
+                    <div className="secure-info">
+                      <span className="secure-icon">🔒</span>
+                      <span>Compra segura con Blockchain</span>
+                    </div>
+                  </div>
+                  
+                  <div className="action-buttons">
+                    <button 
+                      className={`btn-favorite-large ${isFavorite(selectedEvent.id) ? 'favorite-active' : ''}`}
+                      onClick={() => toggleFavorite(selectedEvent.id)}
+                      title={isFavorite(selectedEvent.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+                    >
+                      {isFavorite(selectedEvent.id) ? '❤️ Favorito' : '♡ Agregar a Favoritos'}
+                    </button>
+                    <button className="btn-secondary-large" onClick={closeEventModal}>
+                      Cerrar
+                    </button>
+                    <button 
+                      className="btn-primary-large glow-pulse"
+                      onClick={() => openCheckout(selectedEvent, 'general')}
+                    >
+                      🛒 Proceder al Checkout
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Checkout Modal */}
+        {showCheckout && selectedEvent && (
+          <div className="modal-overlay" onClick={closeCheckout}>
+            <div className="checkout-modal" onClick={(e) => e.stopPropagation()}>
+              <button className="modal-close" onClick={closeCheckout}>×</button>
+              
+              <div className="checkout-header">
+                <h2>🛒 Checkout - {selectedEvent.title}</h2>
+                <div className="checkout-steps">
+                  <div className={`step ${checkoutStep >= 1 ? 'active' : ''} ${checkoutStep > 1 ? 'completed' : ''}`}>
+                    <span className="step-number">1</span>
+                    <span className="step-label">Tickets</span>
+                  </div>
+                  <div className={`step ${checkoutStep >= 2 ? 'active' : ''} ${checkoutStep > 2 ? 'completed' : ''}`}>
+                    <span className="step-number">2</span>
+                    <span className="step-label">Información</span>
+                  </div>
+                  <div className={`step ${checkoutStep >= 3 ? 'active' : ''} ${checkoutStep > 3 ? 'completed' : ''}`}>
+                    <span className="step-number">3</span>
+                    <span className="step-label">Pago</span>
+                  </div>
+                  <div className={`step ${checkoutStep >= 4 ? 'active' : ''}`}>
+                    <span className="step-number">4</span>
+                    <span className="step-label">Confirmación</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="checkout-content">
+                {/* Paso 1: Selección de Tickets */}
+                {checkoutStep === 1 && (
+                  <div className="checkout-step">
+                    <h3>Selecciona tus Tickets</h3>
+                    <div className="ticket-selection">
+                      <div className="ticket-types">
+                        <div className="ticket-type-card">
+                          <div className="ticket-type-info">
+                            <h4>🎫 General</h4>
+                            <p>Acceso general al evento</p>
+                            <div className="ticket-price-large">{selectedEvent.price} ETH</div>
+                          </div>
+                          <div className="ticket-quantity">
+                            <button 
+                              onClick={() => updateTicketQuantity('general', 
+                                (selectedTickets.find(t => t.type === 'general')?.quantity || 0) - 1)}
+                              disabled={!(selectedTickets.find(t => t.type === 'general')?.quantity > 0)}
+                            >-</button>
+                            <span>{selectedTickets.find(t => t.type === 'general')?.quantity || 0}</span>
+                            <button onClick={() => addTicketType('general', selectedEvent.price)}>+</button>
+                          </div>
+                        </div>
+
+                        <div className="ticket-type-card vip">
+                          <div className="ticket-type-info">
+                            <h4>⭐ VIP</h4>
+                            <p>Acceso VIP + Meet & Greet</p>
+                            <div className="ticket-price-large">{(selectedEvent.price * 2.5).toFixed(3)} ETH</div>
+                          </div>
+                          <div className="ticket-quantity">
+                            <button 
+                              onClick={() => updateTicketQuantity('vip', 
+                                (selectedTickets.find(t => t.type === 'vip')?.quantity || 0) - 1)}
+                              disabled={!(selectedTickets.find(t => t.type === 'vip')?.quantity > 0)}
+                            >-</button>
+                            <span>{selectedTickets.find(t => t.type === 'vip')?.quantity || 0}</span>
+                            <button onClick={() => addTicketType('vip', (selectedEvent.price * 2.5))}>+</button>
+                          </div>
+                        </div>
+
+                        <div className="ticket-type-card platinum">
+                          <div className="ticket-type-info">
+                            <h4>💎 Platinum</h4>
+                            <p>Experiencia completa + Backstage</p>
+                            <div className="ticket-price-large">{(selectedEvent.price * 4).toFixed(3)} ETH</div>
+                          </div>
+                          <div className="ticket-quantity">
+                            <button 
+                              onClick={() => updateTicketQuantity('platinum', 
+                                (selectedTickets.find(t => t.type === 'platinum')?.quantity || 0) - 1)}
+                              disabled={!(selectedTickets.find(t => t.type === 'platinum')?.quantity > 0)}
+                            >-</button>
+                            <span>{selectedTickets.find(t => t.type === 'platinum')?.quantity || 0}</span>
+                            <button onClick={() => addTicketType('platinum', (selectedEvent.price * 4))}>+</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="order-summary">
+                        <h4>Resumen del Pedido</h4>
+                        {selectedTickets.map(ticket => (
+                          <div key={ticket.type} className="order-item">
+                            <span>{ticket.type.charAt(0).toUpperCase() + ticket.type.slice(1)} x{ticket.quantity}</span>
+                            <span>{(ticket.price * ticket.quantity).toFixed(3)} ETH</span>
+                          </div>
+                        ))}
+                        <div className="order-total">
+                          <span>Total: ${getTotalPrice()}</span>
+                          <span>{getTotalTickets()} ticket{getTotalTickets() !== 1 ? 's' : ''}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Paso 2: Información Personal */}
+                {checkoutStep === 2 && (
+                  <div className="checkout-step">
+                    <h3>Información Personal</h3>
+                    <div className="customer-form">
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label>Nombre *</label>
+                          <input
+                            type="text"
+                            value={customerInfo.firstName}
+                            onChange={(e) => setCustomerInfo({...customerInfo, firstName: e.target.value})}
+                            placeholder="Tu nombre"
+                            required
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Apellido *</label>
+                          <input
+                            type="text"
+                            value={customerInfo.lastName}
+                            onChange={(e) => setCustomerInfo({...customerInfo, lastName: e.target.value})}
+                            placeholder="Tu apellido"
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label>Email *</label>
+                        <input
+                          type="email"
+                          value={customerInfo.email}
+                          onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})}
+                          placeholder="tu@email.com"
+                          required
+                        />
+                      </div>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label>Teléfono *</label>
+                          <input
+                            type="tel"
+                            value={customerInfo.phone}
+                            onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})}
+                            placeholder="+54 11 1234-5678"
+                            required
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Documento de Identidad *</label>
+                          <input
+                            type="text"
+                            value={customerInfo.idNumber}
+                            onChange={(e) => setCustomerInfo({...customerInfo, idNumber: e.target.value})}
+                            placeholder="DNI, Pasaporte, etc."
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Paso 3: Información de Pago */}
+                {checkoutStep === 3 && (
+                  <div className="checkout-step">
+                    <h3>Método de Pago</h3>
+                    <div className="payment-methods">
+                      <div className="payment-tabs">
+                        <button 
+                          className={`payment-tab ${paymentInfo.method === 'crypto' ? 'active' : ''}`}
+                          onClick={() => setPaymentInfo({...paymentInfo, method: 'crypto'})}
+                        >
+                          🚀 Crypto (Recomendado)
+                        </button>
+                        <button 
+                          className={`payment-tab ${paymentInfo.method === 'card' ? 'active' : ''}`}
+                          onClick={() => setPaymentInfo({...paymentInfo, method: 'card'})}
+                        >
+                          💳 Tarjeta de Crédito
+                        </button>
+                      </div>
+
+                      {paymentInfo.method === 'crypto' && (
+                        <div className="crypto-payment">
+                          <div className="crypto-info">
+                            <h4>🔒 Pago Seguro con Blockchain</h4>
+                            <p>Conecta tu wallet para un pago rápido y seguro en Base Network. Fees súper bajos (~$0.01) comparado con Ethereum (~$50). Los tickets se generarán como NFTs únicos.</p>
+                          </div>
+                          <div className="crypto-options">
+                            <div className="crypto-option">
+                              <span>🔵</span>
+                              <span>Ethereum Mainnet</span>
+                              <span className="crypto-price">{getTotalPrice()} ETH (~$50 fees)</span>
+                            </div>
+                            <div className="crypto-option selected">
+                              <span>🔷</span>
+                              <span>Base Network (Recomendado)</span>
+                              <span className="crypto-price">{getTotalPrice()} ETH (~$0.01 fees)</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {paymentInfo.method === 'card' && (
+                        <div className="card-payment">
+                          <div className="form-group">
+                            <label>Número de Tarjeta *</label>
+                            <input
+                              type="text"
+                              value={paymentInfo.cardNumber}
+                              onChange={(e) => setPaymentInfo({...paymentInfo, cardNumber: e.target.value})}
+                              placeholder="1234 5678 9012 3456"
+                              maxLength="19"
+                              required
+                            />
+                          </div>
+                          <div className="form-row">
+                            <div className="form-group">
+                              <label>Fecha de Vencimiento *</label>
+                              <input
+                                type="text"
+                                value={paymentInfo.expiryDate}
+                                onChange={(e) => setPaymentInfo({...paymentInfo, expiryDate: e.target.value})}
+                                placeholder="MM/YY"
+                                maxLength="5"
+                                required
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label>CVV *</label>
+                              <input
+                                type="text"
+                                value={paymentInfo.cvv}
+                                onChange={(e) => setPaymentInfo({...paymentInfo, cvv: e.target.value})}
+                                placeholder="123"
+                                maxLength="4"
+                                required
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Paso 4: Confirmación */}
+                {checkoutStep === 4 && (
+                  <div className="checkout-step">
+                    <div className="confirmation-success">
+                      <div className="success-icon">🎉</div>
+                      <h3>¡Compra Exitosa!</h3>
+                      <p>Tu orden ha sido procesada exitosamente. Los tickets han sido generados como NFTs únicos.</p>
+                      
+                      <div className="order-confirmation">
+                        <h4>Detalles del Pedido</h4>
+                        <div className="confirmation-detail">
+                          <span>Evento:</span>
+                          <span>{selectedEvent.title}</span>
+                        </div>
+                        <div className="confirmation-detail">
+                          <span>Fecha:</span>
+                          <span>{new Date(selectedEvent.date).toLocaleDateString('es-ES')} • {selectedEvent.time}</span>
+                        </div>
+                        <div className="confirmation-detail">
+                          <span>Venue:</span>
+                          <span>{selectedEvent.venue}, {selectedEvent.city}</span>
+                        </div>
+                        <div className="confirmation-detail">
+                          <span>Tickets:</span>
+                          <span>{getTotalTickets()} ticket{getTotalTickets() !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div className="confirmation-detail total">
+                          <span>Total Pagado:</span>
+                          <span>{getTotalPrice()} ETH</span>
+                        </div>
+                      </div>
+
+                      <div className="confirmation-actions">
+                        <button className="btn-primary-large">
+                          📧 Enviar por Email
+                        </button>
+                        <button className="btn-secondary-large">
+                          📱 Ver en Wallet
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="checkout-footer">
+                <div className="checkout-nav">
+                  {checkoutStep > 1 && checkoutStep < 4 && (
+                    <button className="btn-secondary-large" onClick={prevCheckoutStep}>
+                      ← Anterior
+                    </button>
+                  )}
+                  
+                  <div className="checkout-total">
+                    <span>Total: {getTotalPrice()} ETH</span>
+                    <span>{getTotalTickets()} ticket{getTotalTickets() !== 1 ? 's' : ''}</span>
+                  </div>
+
+                  {checkoutStep < 3 && (
+                    <button 
+                      className="btn-primary-large glow-pulse" 
+                      onClick={nextCheckoutStep}
+                      disabled={checkoutStep === 1 && selectedTickets.length === 0}
+                    >
+                      Continuar →
+                    </button>
+                  )}
+                  
+                  {checkoutStep === 3 && (
+                    <button 
+                      className="btn-primary-large glow-pulse" 
+                      onClick={nextCheckoutStep}
+                    >
+                      💳 Confirmar Pago
+                    </button>
+                  )}
+
+                  {checkoutStep === 4 && (
+                    <button 
+                      className="btn-primary-large glow-pulse" 
+                      onClick={closeCheckout}
+                    >
+                      ✅ Finalizar
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="ticket-safer">
+      {/* Elementos Decorativos Metálicos */}
+      <div className="wireframe-grid"></div>
+      <div className="metallic-orb metallic-orb-1"></div>
+      <div className="metallic-orb metallic-orb-2"></div>
+      <div className="metallic-orb metallic-orb-3"></div>
+      <div className="metallic-orb metallic-orb-4"></div>
+      <div className="geometric-shape geometric-triangle"></div>
+      <div className="geometric-shape geometric-diamond"></div>
+      <div className="geometric-shape geometric-sphere"></div>
+      <div className="geometric-shape geometric-cube"></div>
+      
+      <header className="header">
+        <div className="container">
+          <h1 className="logo">🎫 TicketSafer</h1>
+          <nav className="nav">
+            <a href="#" onClick={(e) => { e.preventDefault(); setCurrentView('events') }}>Eventos</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); setCurrentView('my-tickets') }}>Mis Tickets</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); setCurrentView('create-event') }}>Crear Evento</a>
+          </nav>
+          <ConnectButton />
+        </div>
+      </header>
+
+      <main className="main">
+        <div className="container">
+          <section className="hero">
+            <h2 className="neon-flicker">Tickets NFT Seguros y Verificables</h2>
+            <p>Compra, vende y transfiere tickets de eventos usando <strong>Base Network</strong>. 
+               Pagos en ETH con fees súper bajos. Sin falsificaciones, sin problemas.</p>
+            
+            <div className="network-info">
+              <div className="network-card">
+                <span className="network-icon">🔷</span>
+                <div className="network-details">
+                  <h4>Base Network (L2)</h4>
+                  <p>Layer 2 de Ethereum con fees ultra bajos</p>
+                  <span className="network-benefit">~$0.01 por transacción</span>
+                </div>
+              </div>
+              <div className="network-card">
+                <span className="network-icon">⚡</span>
+                <div className="network-details">
+                  <h4>Confirmación Rápida</h4>
+                  <p>Transacciones confirmadas en 1-2 minutos</p>
+                  <span className="network-benefit">10x más rápido que Ethereum</span>
+                </div>
+              </div>
+              <div className="network-card">
+                <span className="network-icon">💎</span>
+                <div className="network-details">
+                  <h4>Mismo ETH</h4>
+                  <p>Misma moneda, red más eficiente</p>
+                  <span className="network-benefit">Compatible con wallets Ethereum</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Hero Search Bar */}
+            <div className="hero-search">
+              <form className="search-form hero-search-form" onSubmit={handleSearchSubmit}>
+                <div className="search-input-container">
+                  <input
+                    type="text"
+                    className="search-input hero-search-input"
+                    placeholder="🔍 Buscar eventos, artistas, venues..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value)
+                      setShowSearchSuggestions(true)
+                    }}
+                    onFocus={() => setShowSearchSuggestions(true)}
+                  />
+                  <button type="submit" className="search-btn hero-search-btn">
+                    Buscar
+                  </button>
+                  
+                  {showSearchSuggestions && searchQuery && (
+                    <div className="search-suggestions hero-suggestions">
+                      <div className="suggestions-header">
+                        <span>Eventos sugeridos</span>
+                        <span className="suggestions-count">{getSearchSuggestions().length} encontrados</span>
+                      </div>
+                      {getSearchSuggestions().map(event => (
+                        <div 
+                          key={event.id} 
+                          className="suggestion-item"
+                          onClick={() => handleSuggestionClick(event)}
+                        >
+                          <div className="suggestion-content">
+                            <span className="suggestion-title">{event.title}</span>
+                            <span className="suggestion-details">{event.artist} • {event.city}</span>
+                          </div>
+                          <span className="suggestion-price">{event.price} ETH</span>
+                        </div>
+                      ))}
+                      <div className="suggestions-footer">
+                        <button onClick={() => setCurrentView('events')} className="view-all-btn">
+                          Ver todos los eventos →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </form>
+            </div>
+
+            {!isConnected && (
+              <div className="cta">
+                <p>Conecta tu wallet para comenzar</p>
+              </div>
+            )}
+          </section>
+
+          {/* Featured Events Preview */}
+          <section className="featured-events">
+            <div className="section-header">
+              <h3>🔥 Eventos Destacados</h3>
+              <button 
+                className="btn-secondary"
+                onClick={() => setCurrentView('events')}
+              >
+                Ver todos
+              </button>
+            </div>
+            <div className="events-preview">
+              {mockEvents.slice(0, 3).map(event => (
+                <div key={event.id} className="event-card-preview">
+                  <div className="event-image">
+                    <OptimizedImage src={event.image} alt={event.title} />
+                    <div className="event-overlay">
+                      <span className="event-category">{event.category}</span>
+                    </div>
+                  </div>
+                  <div className="event-content">
+                    <h4 className="event-title">{event.title}</h4>
+                    <p className="event-artist">{event.artist}</p>
+                    <p className="event-date">{new Date(event.date).toLocaleDateString('es-ES')}</p>
+                    <div className="event-price-preview">
+                      <span>{event.price} ETH</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {isConnected && (
+            <section className="dashboard">
+              <h3>Bienvenido, {address?.slice(0, 6)}...{address?.slice(-4)}</h3>
+              
+              <div className="grid">
+                <div className="card">
+                  <h4>🎪 Próximos Eventos</h4>
+                  <p>Descubre eventos increíbles con tickets NFT</p>
+                  <button 
+                    className="btn glow-pulse"
+                    onClick={() => setCurrentView('events')}
+                  >
+                    Ver Eventos
+                  </button>
+                </div>
+                
+                <div className="card">
+                  <h4>🎫 Mis Tickets</h4>
+                  <p>Gestiona tus tickets NFT</p>
+                  <button 
+                    className="btn glow-pulse"
+                    onClick={() => setCurrentView('my-tickets')}
+                  >
+                    Ver Collection
+                  </button>
+                </div>
+                
+                <div className="card">
+                  <h4>✨ Crear Evento</h4>
+                  <p>Organiza tu evento con tickets NFT</p>
+                  <button 
+                    className="btn glow-pulse"
+                    onClick={() => setCurrentView('create-event')}
+                  >
+                    Crear Evento
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
+
+          <section className="features">
+            <h3>¿Por qué TicketSafer?</h3>
+            <div className="features-grid">
+              <div className="feature">
+                <span className="icon">🔒</span>
+                <h4>Seguro</h4>
+                <p>Blockchain garantiza autenticidad</p>
+              </div>
+              <div className="feature">
+                <span className="icon">🌐</span>
+                <h4>Descentralizado</h4>
+                <p>Tú controlas tus tickets</p>
+              </div>
+              <div className="feature">
+                <span className="icon">💎</span>
+                <h4>Coleccionable</h4>
+                <p>Tickets como NFTs únicos</p>
+              </div>
+              <div className="feature">
+                <span className="icon">🔄</span>
+                <h4>Transferible</h4>
+                <p>Revende de forma segura</p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+
+      <footer className="footer">
+        <div className="container">
+          <p>&copy; 2025 TicketSafer - Powered by Blockchain</p>
+        </div>
+      </footer>
+    </div>
+  )
+}
+
+export default TicketSafer 

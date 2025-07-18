@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@rainbow-me/rainbowkit": "^2.2.7",
+    "@tanstack/react-query": "^5.80.7",
+    "ipfs-http-client": "^60.0.1",
+    "viem": "^2.31.2",
+    "wagmi": "^2.15.6"
+  }
+}

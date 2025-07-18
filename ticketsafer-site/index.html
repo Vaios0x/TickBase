@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    
+    <!-- PWA Favicons -->
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" href="/pwa-icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png">
+    
+    <!-- Viewport y responsive -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no" />
+    
+    <!-- SEO Meta Tags -->
+    <title>TicketSafer - Tickets NFT Seguros en Base Network</title>
+    <meta name="description" content="Compra, vende y transfiere tickets de eventos usando Base Network. Pagos en ETH con fees súper bajos. Sin falsificaciones, 100% seguro." />
+    <meta name="keywords" content="NFT, tickets, blockchain, Base Network, Ethereum, eventos, conciertos, teatro" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="application-name" content="TicketSafer" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="TicketSafer" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+    <meta name="msapplication-TileColor" content="#667eea" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="TicketSafer - Tickets NFT Seguros" />
+    <meta property="og:description" content="Plataforma de tickets NFT en Base Network con fees ultra bajos" />
+    <meta property="og:image" content="/ticket.svg" />
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="TicketSafer - Tickets NFT Seguros" />
+    <meta name="twitter:description" content="Plataforma de tickets NFT en Base Network" />
+    
+    <!-- Tema y colores -->
+    <meta name="theme-color" content="#667eea" />
+    <meta name="color-scheme" content="dark" />
+    
+    <!-- Fonts optimizadas según Vite Asset Handling -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    
+    <!-- Prevent Flash of Unstyled Content -->
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        background-color: #000000;
+        color: #ffffff;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      }
+      
+      #root {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      /* Loading spinner inicial */
+      .loading {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #ffd700;
+        font-size: 1.2rem;
+        z-index: 9999;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <!-- Fallback loading para mejor UX -->
+      <div class="loading">
+        🎫 Cargando TicketSafer...
+      </div>
+    </div>
+    
+    <!-- Script principal con defer según Vite guidelines -->
+    <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Fallback para navegadores sin ES modules -->
+    <script nomodule>
+      alert('Este navegador no es compatible. Por favor actualiza a una versión moderna.');
+    </script>
+  </body>
+</html>
